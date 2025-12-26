@@ -58,4 +58,154 @@
             "Consistency is more important than perfection.",
             "The journey of a thousand miles begins with a single step.",
             "I really appreciate your help with this project.",
-            "To be honest, I
+            "To be honest, I think we should try a different approach."
+        ];
+
+        let currentIndex = 0;
+        let isRecording = false;
+        let mediaRecorder;
+        let audioChunks = [];
+
+        // --- Persistent Streak Logic ---
+        function loadStreak() {
+            const streak = localStorage.getItem('dailyStreak') || 0;
+            const lastDate = localStorage.getItem('lastDate');
+            const today = new Date().toDateString();
+            
+            if (lastDate && (new Date(today) - new Date(lastDate)) / 86400000 > 1) {
+                localStorage.setItem('dailyStreak', 0);
+                document.getElementById('streakCount').innerText = "0";
+            } else {
+                document.getElementById('streakCount').innerText = streak;
+            }
+        }
+
+        function updateStreak() {
+            const today = new Date().toDateString();
+            const lastDate = localStorage.getItem('lastDate');
+            let currentStreak = parseInt(localStorage.getItem('dailyStreak') || 0);
+
+            if (lastDate !== today) {
+                currentStreak++;
+                localStorage.setItem('dailyStreak', currentStreak);
+                localStorage.setItem('lastDate', today);
+                document.getElementById('streakCount').innerText = currentStreak;
+            }
+        }
+
+        // --- Audio & Recognition ---
+        function playAI() {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(dailySentences[currentIndex]);
+            msg.lang = 'en-US';
+            window.speechSynthesis.speak(msg);
+        }
+
+        async function toggleRecording() {
+            const btn = document.getElementById('micBtn');
+            if (!isRecording) {
+                audioChunks = [];
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+                    mediaRecorder = new MediaRecorder(stream, { mimeType });
+                    mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: mimeType });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        addVoiceToGallery(audioUrl, dailySentences[currentIndex]);
+                        stream.getTracks().forEach(t => t.stop());
+                    };
+
+                    startSpeechEngine();
+                    mediaRecorder.start();
+                    isRecording = true;
+                    btn.innerText = "🛑 Stop";
+                    btn.classList.replace('bg-blue-600', 'bg-red-500');
+                } catch (err) { alert("Microphone access is required."); }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                btn.innerText = "🎤 Record";
+                btn.classList.replace('bg-red-500', 'bg-blue-600');
+            }
+        }
+
+        function startSpeechEngine() {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const rec = new SpeechRec();
+            rec.onresult = (e) => {
+                const speech = e.results[0][0].transcript;
+                calculateIntelligentScore(speech);
+                updateStreak();
+            };
+            rec.start();
+        }
+
+        // --- THE SCORING FUNCTION ---
+        function calculateIntelligentScore(userSpeech) {
+            const target = dailySentences[currentIndex].toLowerCase().replace(/[^\w\s]/gi, '');
+            const input = userSpeech.toLowerCase().replace(/[^\w\s]/gi, '');
+            
+            const targetWords = target.split(/\s+/);
+            const inputWords = input.split(/\s+/);
+            
+            let matchCount = 0;
+            targetWords.forEach(word => {
+                if (inputWords.includes(word)) {
+                    matchCount++;
+                }
+            });
+
+            const score = Math.round((matchCount / targetWords.length) * 100);
+            displayScore(score, userSpeech);
+        }
+
+        function displayScore(score, transcript) {
+            const area = document.getElementById('resultArea');
+            const scoreText = document.getElementById('scoreText');
+            const bar = document.getElementById('scoreBar');
+            
+            area.classList.remove('hidden');
+            scoreText.innerText = score + "%";
+            bar.style.width = score + "%";
+            
+            // Color Logic
+            if (score >= 80) {
+                bar.className = "h-full transition-all duration-1000 bg-emerald-500";
+                scoreText.className = "text-5xl font-black text-emerald-600 mb-4 tracking-tighter";
+            } else if (score >= 50) {
+                bar.className = "h-full transition-all duration-1000 bg-amber-400";
+                scoreText.className = "text-5xl font-black text-amber-500 mb-4 tracking-tighter";
+            } else {
+                bar.className = "h-full transition-all duration-1000 bg-rose-500";
+                scoreText.className = "text-5xl font-black text-rose-600 mb-4 tracking-tighter";
+            }
+
+            document.getElementById('userTranscript').innerText = `"${transcript}"`;
+        }
+
+        function addVoiceToGallery(url, title) {
+            const gallery = document.getElementById('gallery');
+            if (gallery.innerText.includes("Practice a sentence")) gallery.innerHTML = "";
+            const div = document.createElement('div');
+            div.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 text-left";
+            div.innerHTML = `
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">${title}</p>
+                <audio src="${url}" controls class="w-full h-8"></audio>
+            `;
+            gallery.prepend(div);
+        }
+
+        function nextSentence() {
+            currentIndex = (currentIndex + 1) % dailySentences.length;
+            document.getElementById('targetText').innerText = `"${dailySentences[currentIndex]}"`;
+            document.getElementById('resultArea').classList.add('hidden');
+        }
+
+        // Run on load
+        loadStreak();
+        nextSentence();
+    </script>
+</body>
+</html>
