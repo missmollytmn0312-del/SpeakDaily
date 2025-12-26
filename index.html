@@ -3,50 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Speaking Hero | Live Voice</title>
+    <title>Speaking Pro | Persistence Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 min-h-screen p-4 pb-12">
+<body class="bg-slate-50 min-h-screen p-4 pb-20 font-sans">
     <div class="max-w-md mx-auto space-y-4">
         
-        <div class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center">
-            <h1 class="font-bold text-slate-800">Speaking Pro</h1>
-            <div class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                🔥 Streak: <span id="streakCount">0</span>
+        <div class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-slate-200">
+            <div>
+                <h1 class="font-bold text-slate-800 text-lg">Speaking Pro</h1>
+                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-tight">Progress Saved Locally</p>
+            </div>
+            <div class="flex flex-col items-end">
+                <div class="bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-sm">
+                    🔥 <span id="streakCount">0</span> Days
+                </div>
             </div>
         </div>
 
         <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200">
             <div class="bg-indigo-50 p-6 rounded-2xl mb-6 min-h-[100px] flex items-center justify-center">
-                <p id="targetText" class="text-xl font-medium text-indigo-900 text-center italic leading-relaxed">"Press Next to Start"</p>
+                <p id="targetText" class="text-lg font-semibold text-indigo-900 text-center italic">"Loading..."</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <button onclick="playAI()" class="bg-slate-200 hover:bg-slate-300 py-4 rounded-2xl font-bold text-slate-700 transition">🔊 Listen</button>
-                <button id="micBtn" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-bold shadow-lg transition select-none">
-                    🎤 Hold to Speak
-                </button>
+                <button onclick="playAI()" class="bg-slate-100 hover:bg-slate-200 py-4 rounded-2xl font-bold text-slate-700 transition">🔊 Listen</button>
+                <button id="micBtn" onclick="toggleRecording()" class="bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-bold shadow-lg transition-all">🎤 Record</button>
             </div>
 
-            <button onclick="nextSentence()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold hover:bg-slate-900 transition">
-                Next Sentence ➔
-            </button>
+            <button onclick="nextSentence()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold hover:bg-slate-900 mb-4">Next Sentence ➔</button>
 
-            <div id="resultArea" class="hidden mt-6 pt-4 border-t border-slate-100 animate-pulse">
-                <div class="text-xs text-slate-400 font-bold uppercase mb-1">Accuracy</div>
+            <div id="resultArea" class="hidden mt-4 pt-4 border-t border-slate-100 text-center">
                 <div id="scoreText" class="text-4xl font-black text-blue-600">0%</div>
-                <p id="userTranscript" class="text-xs text-slate-500 mt-1"></p>
+                <p id="userTranscript" class="text-xs text-slate-500 mt-1 italic"></p>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-3xl shadow-md">
-            <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <span>📁 Your Voice Recordings</span>
-            </h3>
-            <div id="gallery" class="space-y-3">
-                <p class="text-slate-400 text-sm italic text-center">Recordings will appear here...</p>
+        <div class="bg-white p-6 rounded-3xl shadow-md border border-slate-200">
+            <h3 class="font-bold text-slate-800 mb-4">📁 Your Recordings</h3>
+            <div id="gallery" class="space-y-4 max-h-80 overflow-y-auto">
+                <p class="text-slate-400 text-sm italic text-center">No recordings yet today.</p>
             </div>
+            <button onclick="clearAllData()" class="mt-6 w-full text-[10px] text-red-400 font-bold uppercase tracking-widest hover:text-red-600">Reset All Data & Streak</button>
         </div>
     </div>
 
@@ -56,58 +54,99 @@
             "Could you please repeat that? I didn't quite catch what you said.",
             "Consistency is more important than perfection.",
             "The journey of a thousand miles begins with a single step.",
-            "I really appreciate your help with this project."
+            "I really appreciate your help with this project.",
+            "That is a very interesting point, I hadn't thought of it that way."
         ];
 
         let currentIndex = 0;
+        let isRecording = false;
         let mediaRecorder;
         let audioChunks = [];
-        let streak = localStorage.getItem('dailyStreak') || 0;
-        document.getElementById('streakCount').innerText = streak;
 
-        // --- Fix for Listen Button ---
+        // --- STREAK LOGIC ---
+        function checkAndLoadStreak() {
+            const streak = localStorage.getItem('dailyStreak') || 0;
+            const lastDate = localStorage.getItem('lastDate'); // String format: "Dec 26 2025"
+            const today = new Date().toDateString();
+            
+            if (lastDate) {
+                const lastDateObj = new Date(lastDate);
+                const todayObj = new Date(today);
+                const diffTime = Math.abs(todayObj - lastDateObj);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays > 1) {
+                    // Missed more than a day, reset streak
+                    localStorage.setItem('dailyStreak', 0);
+                    document.getElementById('streakCount').innerText = "0";
+                } else {
+                    document.getElementById('streakCount').innerText = streak;
+                }
+            } else {
+                document.getElementById('streakCount').innerText = streak;
+            }
+        }
+
+        function updateStreak() {
+            const today = new Date().toDateString();
+            const lastDate = localStorage.getItem('lastDate');
+            let currentStreak = parseInt(localStorage.getItem('dailyStreak') || 0);
+
+            if (lastDate !== today) {
+                currentStreak++;
+                localStorage.setItem('dailyStreak', currentStreak);
+                localStorage.setItem('lastDate', today);
+                document.getElementById('streakCount').innerText = currentStreak;
+            }
+        }
+
+        // --- AUDIO LOGIC ---
         function playAI() {
-            window.speechSynthesis.cancel(); // Stop any current speech
+            window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(dailySentences[currentIndex]);
             msg.lang = 'en-US';
-            msg.rate = 0.9;
             window.speechSynthesis.speak(msg);
         }
 
-        // --- Real Audio Recording Logic ---
-        async function startRecording() {
-            audioChunks = [];
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            
-            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-            mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-                addVoiceToGallery(audioUrl, dailySentences[currentIndex]);
-            };
+        async function toggleRecording() {
+            const btn = document.getElementById('micBtn');
+            if (!isRecording) {
+                audioChunks = [];
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+                    mediaRecorder = new MediaRecorder(stream, { mimeType });
+                    mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: mimeType });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        addVoiceToGallery(audioUrl, dailySentences[currentIndex]);
+                        stream.getTracks().forEach(t => t.stop());
+                    };
 
-            // Speech Recognition (for scoring)
+                    startRecognition();
+                    mediaRecorder.start();
+                    isRecording = true;
+                    btn.innerText = "🛑 Stop";
+                    btn.classList.replace('bg-blue-600', 'bg-red-500');
+                } catch (err) { alert("Mic error: " + err); }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                btn.innerText = "🎤 Record";
+                btn.classList.replace('bg-red-500', 'bg-blue-600');
+            }
+        }
+
+        function startRecognition() {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             const rec = new SpeechRec();
             rec.onresult = (e) => {
                 const speech = e.results[0][0].transcript;
                 showScore(speech);
+                updateStreak(); // Streak updates ONLY when you actually speak
             };
-
-            mediaRecorder.start();
             rec.start();
-            
-            document.getElementById('micBtn').innerText = "🔴 Recording...";
-            document.getElementById('micBtn').classList.replace('bg-blue-600', 'bg-red-500');
-        }
-
-        function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                mediaRecorder.stop();
-                document.getElementById('micBtn').innerText = "🎤 Hold to Speak";
-                document.getElementById('micBtn').classList.replace('bg-red-500', 'bg-blue-600');
-            }
         }
 
         function showScore(speech) {
@@ -119,20 +158,18 @@
             document.getElementById('resultArea').classList.remove('hidden');
             document.getElementById('scoreText').innerText = score + "%";
             document.getElementById('userTranscript').innerText = "Heard: " + speech;
-            updateStreak();
         }
 
         function addVoiceToGallery(url, title) {
             const gallery = document.getElementById('gallery');
-            if (gallery.innerHTML.includes("Recordings will appear")) gallery.innerHTML = "";
-
-            const row = document.createElement('div');
-            row.className = "p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2";
-            row.innerHTML = `
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">${title}</p>
-                <audio src="${url}" controls class="w-full h-8"></audio>
+            if (gallery.innerHTML.includes("No recordings yet")) gallery.innerHTML = "";
+            const div = document.createElement('div');
+            div.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2";
+            div.innerHTML = `
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${title}</p>
+                <audio src="${url}" controls class="w-full h-10"></audio>
             `;
-            gallery.prepend(row);
+            gallery.prepend(div);
         }
 
         function nextSentence() {
@@ -141,17 +178,15 @@
             document.getElementById('resultArea').classList.add('hidden');
         }
 
-        function updateStreak() {
-            const today = new Date().toDateString();
-            if (localStorage.getItem('lastDate') !== today) {
-                streak++;
-                localStorage.setItem('dailyStreak', streak);
-                localStorage.setItem('lastDate', today);
-                document.getElementById('streakCount').innerText = streak;
+        function clearAllData() {
+            if(confirm("Are you sure? This will delete your streak and history!")) {
+                localStorage.clear();
+                location.reload();
             }
         }
 
-        // Init
+        // Initialize
+        checkAndLoadStreak();
         nextSentence();
     </script>
 </body>
