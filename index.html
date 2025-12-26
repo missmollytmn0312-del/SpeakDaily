@@ -3,32 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Speaking Practice</title>
+    <title>Speaking Pro - No Sign In</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .streak-fire { filter: drop-shadow(0 0 5px orange); }
+    </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
-        <h1 class="text-2xl font-bold text-slate-800 mb-2">Daily Practice</h1>
-        <p id="date" class="text-sm text-blue-500 font-semibold mb-6"></p>
-
-        <div class="bg-slate-100 p-6 rounded-xl mb-6">
-            <p id="targetText" class="text-lg font-medium text-slate-700 leading-relaxed italic">Loading today's challenge...</p>
+<body class="bg-slate-50 min-h-screen p-4 pb-20 font-sans">
+    <div class="max-w-md mx-auto">
+        <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
+            <h1 class="font-bold text-xl text-slate-800">Speaking Practice</h1>
+            <div class="flex items-center gap-1 bg-orange-100 px-3 py-1 rounded-full">
+                <span class="streak-fire">🔥</span>
+                <span id="streakCount" class="font-bold text-orange-600">0</span>
+            </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4 mb-8">
-            <button onclick="playTarget()" class="bg-slate-800 text-white py-3 rounded-lg hover:bg-slate-700 transition">🔊 Listen</button>
-            <button onclick="startRecording()" id="micBtn" class="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-500 transition shadow-lg shadow-blue-200">🎤 Speak</button>
+        <div class="bg-white p-8 rounded-2xl shadow-xl text-center mb-6">
+            <div class="bg-slate-100 p-6 rounded-xl mb-6">
+                <p id="targetText" class="text-lg font-medium text-slate-700 italic">"Loading..."</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <button onclick="playAI()" class="bg-slate-200 text-slate-700 py-3 rounded-lg font-semibold">🔊 Listen</button>
+                <button onclick="startRecording()" id="micBtn" class="bg-blue-600 text-white py-3 rounded-lg font-semibold shadow-lg shadow-blue-200">🎤 Speak</button>
+            </div>
+            
+            <button onclick="nextSentence()" class="w-full py-2 text-blue-600 font-medium hover:underline text-sm">Next Sentence ➔</button>
+
+            <div id="resultArea" class="hidden mt-6 pt-6 border-t border-slate-100">
+                <p id="scoreText" class="text-4xl font-black text-blue-600 mb-2">0%</p>
+                <div class="w-full bg-slate-200 rounded-full h-2 mb-2">
+                    <div id="scoreBar" class="bg-blue-600 h-2 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+            </div>
         </div>
 
-        <div id="resultArea" class="hidden animate-in fade-in duration-500">
-            <div class="flex justify-between items-end mb-2">
-                <span class="text-sm font-bold text-slate-500 uppercase tracking-wide">Accuracy</span>
-                <span id="scoreText" class="text-3xl font-black text-blue-600">0%</span>
+        <div class="bg-white p-6 rounded-2xl shadow-md">
+            <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                📁 Recording History
+            </h3>
+            <div id="gallery" class="space-y-3 max-h-60 overflow-y-auto italic text-sm text-slate-500">
+                No recordings yet. Practice to see your history!
             </div>
-            <div class="w-full bg-slate-200 rounded-full h-3 mb-4">
-                <div id="scoreBar" class="bg-blue-600 h-3 rounded-full transition-all duration-1000" style="width: 0%"></div>
-            </div>
-            <p class="text-sm text-slate-500">You said: <span id="userTranscript" class="italic text-slate-800"></span></p>
         </div>
     </div>
 
@@ -64,57 +81,88 @@
     "Don't worry about it, everyone makes mistakes once in a while.",
     "I'll send you an email with all the information you need later.",
     "Thank you for the invitation, I would love to come to your party!"
-        ];
+];
 
-        // Pick sentence based on day of the year
-        const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-        const targetText = dailySentences[dayOfYear % dailySentences.length];
-        
-        document.getElementById('targetText').innerText = `"${targetText}"`;
-        document.getElementById('date').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        let currentIndex = 0;
+        let streak = localStorage.getItem('speakingStreak') || 0;
+        document.getElementById('streakCount').innerText = streak;
 
-        function playTarget() {
-            const utterance = new SpeechSynthesisUtterance(targetText);
-            utterance.rate = 0.9; 
+        // Initialize
+        function loadSentence() {
+            document.getElementById('targetText').innerText = `"${dailySentences[currentIndex]}"`;
+            document.getElementById('resultArea').classList.add('hidden');
+        }
+
+        function playAI() {
+            const utterance = new SpeechSynthesisUtterance(dailySentences[currentIndex]);
             window.speechSynthesis.speak(utterance);
         }
 
         function startRecording() {
             const btn = document.getElementById('micBtn');
-            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            const recognition = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
             
             btn.innerText = "Listening...";
             btn.classList.replace('bg-blue-600', 'bg-red-500');
 
             recognition.onresult = (event) => {
                 const speech = event.results[0][0].transcript;
-                document.getElementById('userTranscript').innerText = `"${speech}"`;
-                compare(speech, targetText);
+                updateScore(speech);
+                addToGallery(speech);
+                updateStreak();
             };
 
             recognition.onend = () => {
                 btn.innerText = "🎤 Speak";
                 btn.classList.replace('bg-red-500', 'bg-blue-600');
             };
-
             recognition.start();
         }
 
-        function compare(user, target) {
-            const u = user.toLowerCase().replace(/[[:punct:]]/g, "").trim();
-            const t = target.toLowerCase().replace(/[[:punct:]]/g, "").trim();
+        function updateScore(speech) {
+            const target = dailySentences[currentIndex].toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+            const input = speech.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
             
-            const uWords = u.split(' ');
-            const tWords = t.split(' ');
-            let matches = 0;
+            const tWords = target.split(' ');
+            const iWords = input.split(' ');
+            let matches = tWords.filter(word => iWords.includes(word)).length;
             
-            tWords.forEach(word => { if(uWords.includes(word)) matches++; });
             const score = Math.round((matches / tWords.length) * 100);
-
+            
             document.getElementById('resultArea').classList.remove('hidden');
             document.getElementById('scoreText').innerText = score + "%";
             document.getElementById('scoreBar').style.width = score + "%";
         }
+
+        function nextSentence() {
+            currentIndex = (currentIndex + 1) % dailySentences.length;
+            loadSentence();
+        }
+
+        function addToGallery(text) {
+            const gallery = document.getElementById('gallery');
+            if (gallery.innerText.includes("No recordings")) gallery.innerHTML = "";
+            
+            const item = document.createElement('div');
+            item.className = "p-3 bg-slate-50 rounded-lg border-l-4 border-blue-400";
+            item.innerHTML = `<p class="text-slate-700 font-medium">"${text}"</p>
+                             <span class="text-[10px] text-slate-400 uppercase font-bold">${new Date().toLocaleTimeString()}</span>`;
+            gallery.prepend(item);
+        }
+
+        function updateStreak() {
+            const lastDate = localStorage.getItem('lastPracticeDate');
+            const today = new Date().toDateString();
+
+            if (lastDate !== today) {
+                streak = parseInt(streak) + 1;
+                localStorage.setItem('speakingStreak', streak);
+                localStorage.setItem('lastPracticeDate', today);
+                document.getElementById('streakCount').innerText = streak;
+            }
+        }
+
+        loadSentence();
     </script>
 </body>
 </html>
