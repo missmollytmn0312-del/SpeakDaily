@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Speaking Practice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">Daily Practice</h1>
+        <p id="date" class="text-sm text-blue-500 font-semibold mb-6"></p>
+
+        <div class="bg-slate-100 p-6 rounded-xl mb-6">
+            <p id="targetText" class="text-lg font-medium text-slate-700 leading-relaxed italic">Loading today's challenge...</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <button onclick="playTarget()" class="bg-slate-800 text-white py-3 rounded-lg hover:bg-slate-700 transition">🔊 Listen</button>
+            <button onclick="startRecording()" id="micBtn" class="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-500 transition shadow-lg shadow-blue-200">🎤 Speak</button>
+        </div>
+
+        <div id="resultArea" class="hidden animate-in fade-in duration-500">
+            <div class="flex justify-between items-end mb-2">
+                <span class="text-sm font-bold text-slate-500 uppercase tracking-wide">Accuracy</span>
+                <span id="scoreText" class="text-3xl font-black text-blue-600">0%</span>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-3 mb-4">
+                <div id="scoreBar" class="bg-blue-600 h-3 rounded-full transition-all duration-1000" style="width: 0%"></div>
+            </div>
+            <p class="text-sm text-slate-500">You said: <span id="userTranscript" class="italic text-slate-800"></span></p>
+        </div>
+    </div>
+
+    <script>
+        const dailySentences = [
+            "Persistence guarantees that results are inevitable.",
+            "The journey of a thousand miles begins with a single step.",
+            "Consistency is more important than perfection.",
+            "Clear communication is the key to professional success.",
+            "Practice makes a person perfect in every endeavor."
+        ];
+
+        // Pick sentence based on day of the year
+        const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+        const targetText = dailySentences[dayOfYear % dailySentences.length];
+        
+        document.getElementById('targetText').innerText = `"${targetText}"`;
+        document.getElementById('date').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+        function playTarget() {
+            const utterance = new SpeechSynthesisUtterance(targetText);
+            utterance.rate = 0.9; 
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function startRecording() {
+            const btn = document.getElementById('micBtn');
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            
+            btn.innerText = "Listening...";
+            btn.classList.replace('bg-blue-600', 'bg-red-500');
+
+            recognition.onresult = (event) => {
+                const speech = event.results[0][0].transcript;
+                document.getElementById('userTranscript').innerText = `"${speech}"`;
+                compare(speech, targetText);
+            };
+
+            recognition.onend = () => {
+                btn.innerText = "🎤 Speak";
+                btn.classList.replace('bg-red-500', 'bg-blue-600');
+            };
+
+            recognition.start();
+        }
+
+        function compare(user, target) {
+            const u = user.toLowerCase().replace(/[[:punct:]]/g, "").trim();
+            const t = target.toLowerCase().replace(/[[:punct:]]/g, "").trim();
+            
+            const uWords = u.split(' ');
+            const tWords = t.split(' ');
+            let matches = 0;
+            
+            tWords.forEach(word => { if(uWords.includes(word)) matches++; });
+            const score = Math.round((matches / tWords.length) * 100);
+
+            document.getElementById('resultArea').classList.remove('hidden');
+            document.getElementById('scoreText').innerText = score + "%";
+            document.getElementById('scoreBar').style.width = score + "%";
+        }
+    </script>
+</body>
+</html>
