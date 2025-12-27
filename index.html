@@ -3,48 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Speaking Pro | Mobile Master</title>
+    <title>Hero Speaker | Fixed</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .score-box { background: #1e293b; color: white; padding: 15px; border-radius: 15px; margin-top: 10px; }
+    </style>
 </head>
-<body class="bg-slate-50 min-h-screen p-4 font-sans select-none">
+<body class="bg-slate-100 min-h-screen p-4 font-sans">
     <div class="max-w-md mx-auto space-y-4">
         
         <div class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-slate-200">
-            <h1 class="font-bold text-slate-800 italic">Hero Speaker</h1>
-            <div class="bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-black shadow-sm">
-                🔥 <span id="streakCount">0</span>
-            </div>
+            <h1 class="font-bold text-slate-800">Speaking Hero</h1>
+            <div class="bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-bold">🔥 <span id="streakCount">0</span></div>
         </div>
 
-        <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200 text-center">
-            <div id="statusLabel" class="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-widest">Ready to listen</div>
-            
-            <div class="bg-indigo-50 p-6 rounded-2xl mb-6 min-h-[120px] flex items-center justify-center border border-indigo-100">
-                <p id="targetText" class="text-xl font-bold text-indigo-900 leading-tight italic">"Loading..."</p>
+        <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200">
+            <div class="bg-indigo-50 p-6 rounded-2xl mb-6 min-h-[100px] flex items-center justify-center border border-indigo-100">
+                <p id="targetText" class="text-xl font-bold text-indigo-900 text-center leading-tight">"Wait, loading..."</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <button onclick="playAI()" class="bg-slate-100 py-4 rounded-2xl font-bold text-slate-700 active:bg-slate-200">🔊 Listen</button>
-                <button id="micBtn" onclick="toggleRecording()" class="bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-all">🎤 Record</button>
+                <button id="listenBtn" class="bg-slate-200 py-4 rounded-2xl font-bold text-slate-700">🔊 Listen</button>
+                <button id="micBtn" class="bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg">🎤 Record</button>
             </div>
 
-            <button onclick="nextSentence()" class="w-full bg-slate-800 text-white py-4 rounded-xl font-bold active:bg-black transition mb-4">Next Sentence ➔</button>
+            <button id="nextBtn" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold mb-4">Next Sentence ➔</button>
 
-            <div id="resultArea" class="hidden mt-4 pt-6 border-t-2 border-slate-50 text-center animate-bounce-short">
-                <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Your Score</p>
-                <div id="scoreText" class="text-7xl font-black text-blue-600 mb-4 tracking-tighter">0%</div>
+            <div id="resultArea" class="hidden border-t pt-4">
+                <p class="text-[10px] font-bold text-slate-400 uppercase text-center mb-1">Accuracy Score</p>
+                <div id="scoreText" class="text-6xl font-black text-blue-600 text-center mb-4">0%</div>
                 
-                <div class="bg-slate-900 p-4 rounded-2xl text-left shadow-inner">
-                    <p class="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-widest">Phone Heard:</p>
-                    <p id="userTranscript" class="text-sm text-white font-medium italic">...</p>
+                <div class="score-box">
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">What we heard:</p>
+                    <p id="userTranscript" class="text-sm italic">...</p>
                 </div>
             </div>
         </div>
 
         <div class="bg-white p-6 rounded-3xl shadow-md border border-slate-200">
-            <h3 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">📁 Saved Recordings</h3>
-            <div id="gallery" class="space-y-4">
-                <p class="text-slate-400 text-xs italic text-center">Your progress will appear here.</p>
+            <h3 class="font-bold text-slate-800 mb-4 text-sm">📁 My Recordings</h3>
+            <div id="gallery" class="space-y-4 text-center text-xs text-slate-400 italic">
+                Recordings will appear here.
             </div>
         </div>
     </div>
@@ -63,9 +62,14 @@
         let mediaRecorder;
         let audioChunks = [];
         let recognition;
-        let lastHeard = "";
 
-        // --- Initialize Speech Engine ---
+        // Load Initial Text immediately to prevent "Loading..." hang
+        function init() {
+            document.getElementById('targetText').innerText = dailySentences[currentIndex];
+            document.getElementById('streakCount').innerText = localStorage.getItem('dailyStreak') || 0;
+        }
+
+        // --- SPEECH ENGINE ---
         const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRec) {
             recognition = new SpeechRec();
@@ -74,63 +78,68 @@
             recognition.interimResults = true;
 
             recognition.onresult = (e) => {
-                let interim = "";
-                for (let i = e.resultIndex; i < e.results.length; ++i) {
-                    if (e.results[i].isFinal) {
-                        lastHeard += e.results[i][0].transcript;
-                    } else {
-                        interim += e.results[i][0].transcript;
-                    }
+                let heard = "";
+                for (let i = 0; i < e.results.length; i++) {
+                    heard += e.results[i][0].transcript;
                 }
-                const currentText = (lastHeard + interim).trim();
-                if(currentText.length > 0) {
-                    updateUI(currentText);
-                }
+                updateDisplay(heard);
             };
         }
 
+        // --- BUTTON HANDLERS ---
+        document.getElementById('listenBtn').onclick = () => {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(dailySentences[currentIndex]);
+            msg.lang = 'en-US';
+            window.speechSynthesis.speak(msg);
+        };
+
+        document.getElementById('nextBtn').onclick = () => {
+            currentIndex = (currentIndex + 1) % dailySentences.length;
+            document.getElementById('targetText').innerText = dailySentences[currentIndex];
+            document.getElementById('resultArea').classList.add('hidden');
+        };
+
         async function toggleRecording() {
             const btn = document.getElementById('micBtn');
-            const status = document.getElementById('statusLabel');
-
             if (!isRecording) {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-                    mediaRecorder = new MediaRecorder(stream, { mimeType });
+                    const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
                     audioChunks = [];
-                    lastHeard = ""; // Clear old text
 
-                    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+                    mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
                     mediaRecorder.onstop = () => {
-                        const blob = new Blob(audioChunks, { type: mimeType });
-                        addVoiceToGallery(URL.createObjectURL(blob), dailySentences[currentIndex]);
+                        const blob = new Blob(audioChunks, { type: mime });
+                        addToGallery(URL.createObjectURL(blob));
                         stream.getTracks().forEach(t => t.stop());
                     };
 
                     mediaRecorder.start();
-                    recognition.start();
+                    if(recognition) recognition.start();
                     
                     isRecording = true;
-                    btn.innerText = "🛑 Stop";
-                    btn.classList.replace('bg-blue-600', 'bg-red-500');
-                    status.innerText = "Listening...";
-                } catch (err) { alert("Mic Access Required"); }
+                    btn.innerText = "🛑 STOP";
+                    btn.style.backgroundColor = "#ef4444";
+                } catch (err) {
+                    alert("Please allow microphone access!");
+                }
             } else {
-                mediaRecorder.stop();
-                recognition.stop();
+                if(mediaRecorder) mediaRecorder.stop();
+                if(recognition) recognition.stop();
                 isRecording = false;
-                btn.innerText = "🎤 Record";
-                btn.classList.replace('bg-red-500', 'bg-blue-600');
-                status.innerText = "Processing...";
+                btn.innerText = "🎤 RECORD";
+                btn.style.backgroundColor = "#2563eb";
             }
         }
 
-        function updateUI(text) {
+        document.getElementById('micBtn').onclick = toggleRecording;
+
+        function updateDisplay(text) {
             document.getElementById('resultArea').classList.remove('hidden');
             document.getElementById('userTranscript').innerText = `"${text}"`;
             
-            // Calculate Score
             const target = dailySentences[currentIndex].toLowerCase().replace(/[^\w\s]/gi, '');
             const input = text.toLowerCase().replace(/[^\w\s]/gi, '');
             const tWords = target.split(/\s+/);
@@ -142,12 +151,32 @@
             if (score > 30) saveStreak();
         }
 
-        function addVoiceToGallery(url, title) {
+        function addToGallery(url) {
             const gallery = document.getElementById('gallery');
-            if (gallery.innerHTML.includes("Your progress will appear")) gallery.innerHTML = "";
+            if (gallery.innerText.includes("Recordings will appear")) gallery.innerHTML = "";
             const div = document.createElement('div');
-            div.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-2 shadow-sm";
+            div.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-2";
             div.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <p class="text-[9px] font-bold text-slate-400 uppercase truncate w-2/3">${title}</p>
-                    <a href="${url}" download="my_practice.wav" class="text-[10px] bg-blue-600 text-white px
+                    <p class="text-[9px] font-bold text-slate-400 uppercase">Recording</p>
+                    <a href="${url}" download="voice.wav" class="text-[9px] bg-blue-600 text-white px-2 py-1 rounded font-bold">📥 SAVE</a>
+                </div>
+                <audio src="${url}" controls class="w-full h-8"></audio>`;
+            gallery.prepend(div);
+        }
+
+        function saveStreak() {
+            const today = new Date().toDateString();
+            if (localStorage.getItem('lastDate') !== today) {
+                let s = parseInt(localStorage.getItem('dailyStreak') || 0) + 1;
+                localStorage.setItem('dailyStreak', s);
+                localStorage.setItem('lastDate', today);
+                document.getElementById('streakCount').innerText = s;
+            }
+        }
+
+        // Run
+        init();
+    </script>
+</body>
+</html>
