@@ -1,324 +1,168 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Daily Voice Conversation</title>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --card: #111827;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --primary: #22c55e;
-      --accent: #3b82f6;
-      --danger: #ef4444;
-      --warn: #f59e0b;
-      --border: #1f2937;
-    }
-
-    html, body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-
-    .app {
-      max-width: 920px;
-      margin: 0 auto;
-      padding: 16px;
-    }
-
-    header {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: start;
-      margin-bottom: 12px;
-    }
-
-    .title {
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-
-    .streak {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .streak .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--primary);
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px;
-      margin-bottom: 16px;
-    }
-
-    .label {
-      font-size: 0.85rem;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    .sentence {
-      font-size: 1.05rem;
-      line-height: 1.5;
-      padding: 12px;
-      border-radius: 12px;
-      background: #0b1222;
-      border: 1px solid #0d1a32;
-    }
-
-    .controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    @media (min-width: 520px) {
-      .controls {
-        grid-template-columns: repeat(4, 1fr);
-      }
-    }
-
-    button {
-      width: 100%;
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: #0b1222;
-      color: var(--text);
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    button.primary { background: var(--accent); color: white; }
-    button.warn { background: var(--warn); color: #1f2937; }
-    button.danger { background: var(--danger); color: white; }
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .score .value {
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: var(--primary);
-    }
-
-    .progress {
-      height: 10px;
-      background: #0b1222;
-      border-radius: 999px;
-      overflow: hidden;
-    }
-
-    .progress-bar {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #22c55e, #3b82f6);
-      transition: width 0.3s;
-    }
-
-    .heard {
-      padding: 10px;
-      border-radius: 10px;
-      background: #0b1222;
-      min-height: 52px;
-    }
-
-    .matched { color: #22c55e; font-weight: bold; }
-    .missed { color: #ef4444; }
-
-    audio { width: 100%; margin-top: 8px; }
-    .small { font-size: 0.8rem; color: var(--muted); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Speaking Pro | Pro Logic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="app">
-    <header>
-      <div class="title">Daily Voice Conversation</div>
-      <div class="streak">
-        <div class="dot"></div>
-        <div>
-          <div><strong>Streak:</strong> <span id="streakDays">0</span> days</div>
-        </div>
-      </div>
-    </header>
-
-    <div class="card">
-      <div class="label">Today’s conversation text</div>
-      <div id="sentenceDisplay" class="sentence">Loading…</div>
-      <div class="controls" style="margin-top:10px;">
-        <button id="btnSpeak" class="primary">Speak</button>
-        <button id="btnNext" class="warn">Next</button>
-        <button id="btnRecord">Record</button>
-        <button id="btnStop" class="danger" disabled>Stop</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="label">Your accuracy score</div>
-      <div class="score">
-        <div class="value" id="scoreValue">0%</div>
-      </div>
-      <div class="progress" style="margin-top:8px;">
-        <div id="scoreBar" class="progress-bar"></div>
-      </div>
-      <div id="heardText" class="heard" style="margin-top:10px;"></div>
-    </div>
-
-    <div class="card">
-      <div class="label">Your voice recording</div>
-      <audio id="audioPlayer" controls></audio>
-      <div class="controls" style="margin-top:10px;">
-        <button id="btnDownload">Download</button>
-        <button id="btnClearAudio">Clear</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const dailySentences = [
-      "Good morning! How are you feeling today?",
-      "I would like a cup of coffee, please.",
-      "Can you help me find the nearest bus stop?",
-      "The weather in Hanoi is warm and breezy.",
-      "Let’s practice English for fifteen minutes.",
-      "What time does the meeting start tomorrow?",
-      "I’m learning Vietnamese and enjoying it."
-    ];
-
-    let currentIndex = 0;
-    let mediaRecorder;
-    let audioChunks = [];
-    let recognition;
-    let lastBlobUrl = null;
-
-    // Elements
-    const sentenceDisplay = document.getElementById('sentenceDisplay');
-    const streakDays = document.getElementById('streakDays');
-    const scoreValue = document.getElementById('scoreValue');
-    const scoreBar = document.getElementById('scoreBar');
-    const heardText = document.getElementById('heardText');
-    const audioPlayer = document.getElementById('audioPlayer');
-    const btnRecord = document.getElementById('btnRecord');
-    const btnStop = document.getElementById('btnStop');
-
-    // Speech Recognition Setup
-    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRec) {
-      recognition = new SpeechRec();
-      recognition.lang = 'en-US';
-      recognition.continuous = true;
-      recognition.onresult = (e) => {
-        const transcript = Array.from(e.results)
-          .map(result => result[0].transcript)
-          .join('');
-        processScore(transcript);
-      };
-    }
-
-    async function startRecording() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-        mediaRecorder = new MediaRecorder(stream, { mimeType });
-        audioChunks = [];
-
-        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(audioChunks, { type: mimeType });
-          if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
-          lastBlobUrl = URL.createObjectURL(blob);
-          audioPlayer.src = lastBlobUrl;
-          stream.getTracks().forEach(t => t.stop());
-        };
-
-        mediaRecorder.start();
-        if (recognition) {
-          heardText.innerHTML = "Listening...";
-          recognition.start();
-        }
+<body class="bg-slate-50 min-h-screen p-4 font-sans flex flex-col items-center">
+    <div class="w-full max-w-md space-y-4">
         
-        btnRecord.disabled = true;
-        btnStop.disabled = false;
-      } catch (err) {
-        alert("Mic access denied or not supported.");
-      }
-    }
+        <div class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-slate-200">
+            <h1 class="font-bold text-slate-800">Speaking Hero</h1>
+            <div class="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold">🔥 <span id="streakCount">0</span></div>
+        </div>
 
-    function stopRecording() {
-      if (mediaRecorder) mediaRecorder.stop();
-      if (recognition) recognition.stop();
-      btnRecord.disabled = false;
-      btnStop.disabled = true;
-    }
+        <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200">
+            <div class="bg-indigo-50 p-6 rounded-2xl mb-6 text-lg font-bold text-indigo-900 text-center leading-tight">
+                <p id="targetText">"The journey of a thousand miles begins with a single step."</p>
+            </div>
 
-    function processScore(speech) {
-      const target = dailySentences[currentIndex].toLowerCase().replace(/[^\w\s]/gi, '');
-      const input = speech.toLowerCase().replace(/[^\w\s]/gi, '');
-      
-      const tWords = target.split(/\s+/);
-      const iWords = input.split(/\s+/);
-      
-      let html = "";
-      let matches = 0;
+            <div id="statusBox" class="text-center mb-4">
+                <span id="statusLabel" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ready to practice</span>
+            </div>
 
-      tWords.forEach(word => {
-        if (iWords.includes(word)) {
-          html += `<span class="matched">${word}</span> `;
-          matches++;
-        } else {
-          html += `<span class="missed">${word}</span> `;
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="playAI()" class="bg-slate-100 py-4 rounded-2xl font-bold text-slate-700 active:bg-slate-200">🔊 Listen</button>
+                <button id="micBtn" onclick="toggleRec()" class="bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">🎤 Record</button>
+            </div>
+        </div>
+
+        <div id="resultArea" class="hidden bg-white p-6 rounded-3xl shadow-lg border border-slate-200 text-center animate-in fade-in">
+            <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Accuracy Score</p>
+            <div id="scoreText" class="text-7xl font-black text-blue-600 mb-4">0%</div>
+            
+            <div class="bg-slate-900 p-4 rounded-2xl text-left mb-4">
+                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Phone Heard:</p>
+                <p id="userTranscript" class="text-sm text-white italic font-medium tracking-wide">...</p>
+            </div>
+
+            <button onclick="nextStep()" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold">Next Sentence ➔</button>
+        </div>
+
+        <div id="gallery" class="space-y-3"></div>
+    </div>
+
+    <script>
+        const sentences = [
+            "The journey of a thousand miles begins with a single step.",
+            "I'm looking forward to our meeting later this afternoon.",
+            "Consistency is more important than perfection.",
+            "Could you please repeat that? I didn't quite catch what you said.",
+            "I really appreciate your help with this project."
+        ];
+        let idx = 0;
+        let isRec = false;
+        let recorder;
+        let chunks = [];
+        let recognition;
+
+        // Fixes the "Listen Once" mobile bug
+        function playAI() {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(sentences[idx]);
+            msg.lang = 'en-US';
+            window.speechSynthesis.speak(msg);
         }
-      });
 
-      const score = Math.round((matches / tWords.length) * 100);
-      scoreValue.innerText = score + "%";
-      scoreBar.style.width = score + "%";
-      heardText.innerHTML = `<strong>Heard:</strong> ${speech}<br><br>${html}`;
-      
-      if (score > 50) updateStreak();
-    }
+        async function toggleRec() {
+            const btn = document.getElementById('micBtn');
+            const status = document.getElementById('statusLabel');
 
-    function updateStreak() {
-      const today = new Date().toDateString();
-      const lastDate = localStorage.getItem('lastDate');
-      let s = parseInt(localStorage.getItem('dailyStreak') || 0);
-      
-      if (lastDate !== today) {
-        s++;
-        localStorage.setItem('dailyStreak', s);
-        localStorage.setItem('lastDate', today);
-        streakDays.innerText = s;
-      }
-    }
+            if (!isRec) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+                    recorder = new MediaRecorder(stream);
+                    chunks = [];
+                    
+                    // Setup Speech Recognition
+                    const Speech = window.webkitSpeechRecognition || window.SpeechRecognition;
+                    recognition = new Speech();
+                    recognition.lang = 'en-US';
+                    recognition.interimResults = false;
 
-    function loadSentence() {
-      sentenceDisplay.innerText = dailySentences[currentIndex];
-      scoreValue.innerText = "0%";
-      scoreBar.style.width = "0%";
-      heardText.innerHTML = "";
-    }
+                    recognition.onresult = (e) => {
+                        const heard = e.results[0][0].transcript;
+                        processScore(heard);
+                    };
 
-    // Event Listeners
-    document.getElementById('btnSpeak').onclick = () => {
-      window.speechSynthesis.cancel();
-      const msg = new SpeechSynthesisUtterance(dailySentences[currentIndex]);
-      window.speechSynthesis.speak(msg);
-    };
+                    recognition.onstart = () => {
+                        status.innerText = "● Recording Voice...";
+                        status.className = "text-[10px] font-bold text-red-500 uppercase tracking-widest";
+                    };
 
-    document.getElementById('btnNext').onclick = () =>
+                    recorder.ondataavailable = (e) => chunks.push(e.data);
+                    recorder.onstop = () => {
+                        const blob = new Blob(chunks, { type: mime });
+                        addToGallery(URL.createObjectURL(blob));
+                        stream.getTracks().forEach(t => t.stop());
+                    };
+
+                    recorder.start();
+                    recognition.start();
+                    isRec = true;
+                    btn.innerText = "🛑 Stop";
+                    btn.className = "bg-red-500 text-white py-4 rounded-2xl font-bold shadow-lg w-full col-span-2";
+                } catch (e) { alert("Mic Access Denied"); }
+            } else {
+                recorder.stop();
+                recognition.stop();
+                isRec = false;
+                btn.innerText = "🎤 Record";
+                btn.className = "bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg";
+                status.innerText = "Processing...";
+                status.className = "text-[10px] font-bold text-blue-500 uppercase tracking-widest";
+            }
+        }
+
+        function processScore(text) {
+            const target = sentences[idx].toLowerCase().replace(/[^\w\s]/gi, '');
+            const input = text.toLowerCase().replace(/[^\w\s]/gi, '');
+            const tWords = target.split(/\s+/);
+            const iWords = input.split(/\s+/);
+            const matches = tWords.filter(w => iWords.includes(w)).length;
+            const score = Math.round((matches / tWords.length) * 100);
+
+            document.getElementById('resultArea').classList.remove('hidden');
+            document.getElementById('scoreText').innerText = score + "%";
+            document.getElementById('userTranscript').innerText = `"${text}"`;
+            document.getElementById('statusLabel').innerText = "Done!";
+            
+            if (score > 30) updateStreak();
+        }
+
+        function addToGallery(url) {
+            const div = document.createElement('div');
+            div.className = "bg-white p-4 rounded-2xl shadow-sm border flex flex-col gap-2 w-full";
+            div.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Voice File</span>
+                    <a href="${url}" download="practice.wav" class="text-[10px] bg-green-500 text-white px-3 py-1 rounded-full font-bold">📥 SAVE</a>
+                </div>
+                <audio src="${url}" controls class="w-full h-8"></audio>`;
+            document.getElementById('gallery').prepend(div);
+        }
+
+        function nextStep() {
+            idx = (idx + 1) % sentences.length;
+            document.getElementById('targetText').innerText = sentences[idx];
+            document.getElementById('resultArea').classList.add('hidden');
+            document.getElementById('statusLabel').innerText = "Ready to practice";
+            document.getElementById('statusLabel').className = "text-[10px] font-bold text-slate-400 uppercase tracking-widest";
+        }
+
+        function updateStreak() {
+            const today = new Date().toDateString();
+            if (localStorage.getItem('lastDate') !== today) {
+                let s = (parseInt(localStorage.getItem('dailyStreak') || 0)) + 1;
+                localStorage.setItem('dailyStreak', s);
+                localStorage.setItem('lastDate', today);
+                document.getElementById('streakCount').innerText = s;
+            }
+        }
+        document.getElementById('streakCount').innerText = localStorage.getItem('dailyStreak') || 0;
+    </script>
+</body>
+</html>
