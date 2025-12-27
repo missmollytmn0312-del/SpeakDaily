@@ -3,52 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hero Speaker | Pro Fix</title>
+    <title>Hero Speaker | Universal Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .record-active { animation: pulse 1.2s infinite; background-color: #ef4444 !important; border-color: #fca5a5 !important; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(0.98); } 100% { transform: scale(1); } }
-    </style>
 </head>
-<body class="bg-slate-100 min-h-screen p-4 font-sans select-none">
+<body class="bg-slate-50 min-h-screen p-4 font-sans">
     <div class="max-w-md mx-auto space-y-4">
         
-        <div class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center">
-            <h1 class="font-black text-slate-800 tracking-tight">HERO SPEAKER</h1>
-            <div class="bg-orange-500 text-white px-3 py-1 rounded-xl font-bold flex items-center gap-2">
+        <div class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-slate-200">
+            <h1 class="font-black text-slate-800">HERO SPEAKER</h1>
+            <div class="bg-orange-500 text-white px-4 py-1 rounded-xl font-bold flex items-center gap-2">
                 <span>🔥</span> <span id="streakDisplay">0</span>
             </div>
         </div>
 
         <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200">
-            <div class="bg-indigo-50 p-6 rounded-2xl mb-6 min-h-[100px] flex items-center justify-center border border-indigo-100">
-                <p id="targetDisplay" class="text-xl font-bold text-indigo-900 text-center italic"></p>
+            <div class="bg-indigo-50 p-6 rounded-2xl mb-6 min-h-[100px] flex items-center justify-center border border-indigo-100 text-center">
+                <p id="targetText" class="text-xl font-bold text-indigo-900 leading-tight italic"></p>
             </div>
 
             <div class="space-y-3">
-                <button onclick="playModel()" class="w-full bg-slate-100 py-3 rounded-xl font-bold text-slate-700 active:bg-slate-200 border">🔊 Listen</button>
+                <button onclick="playModel()" class="w-full bg-slate-100 py-3 rounded-xl font-bold text-slate-700 border active:bg-slate-200">🔊 Listen to AI</button>
                 
-                <div class="grid grid-cols-1 gap-3">
-                    <button id="recordBtn" onclick="startRecording()" class="bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">🎤 1. Start Recording</button>
-                    <button id="stopBtn" onclick="stopRecording()" class="hidden bg-red-500 text-white py-4 rounded-2xl font-black shadow-lg">🛑 2. Stop & Save</button>
-                    <button id="scoreBtn" onclick="runScoring()" class="hidden bg-emerald-500 text-white py-4 rounded-2xl font-black shadow-lg animate-bounce">✨ 3. Get Score</button>
-                </div>
+                <button id="micBtn" onclick="handleMic()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-lg transition-all">
+                    START RECORDING
+                </button>
             </div>
         </div>
 
         <div id="resultArea" class="hidden bg-slate-900 rounded-3xl p-6 text-white shadow-2xl space-y-4">
             <div class="flex justify-between items-center border-b border-white/10 pb-4">
                 <div class="text-5xl font-black text-blue-400" id="scorePercent">0%</div>
-                <div class="text-right">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase">Heard</p>
-                    <p id="heardText" class="italic text-slate-300 text-sm">...</p>
+                <div class="text-right max-w-[50%]">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">I heard:</p>
+                    <p id="heardText" class="italic text-slate-300 text-sm leading-tight"></p>
                 </div>
             </div>
             
-            <div class="bg-white/5 p-3 rounded-2xl">
-                <div class="flex justify-between mb-2">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">My Voice File</span>
-                    <a id="downloadBtn" class="text-[10px] text-blue-400 font-bold underline">DOWNLOAD FILE</a>
+            <div class="bg-white/5 p-4 rounded-2xl space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">My Recording</span>
+                    <a id="downloadBtn" class="text-[10px] bg-blue-500 px-3 py-1 rounded-full text-white font-bold">SAVE FILE</a>
                 </div>
                 <audio id="player" controls class="w-full h-8"></audio>
             </div>
@@ -58,75 +52,80 @@
     </div>
 
     <script>
-        const conversation = [
+        const sentences = [
             "The quick brown fox jumps over the lazy dog.",
             "I'm looking forward to our meeting later this afternoon.",
             "Consistency is more important than perfection.",
             "I really appreciate your help with this project."
         ];
 
-        let currentIdx = 0;
+        let idx = 0;
+        let isRecording = false;
         let mediaRec;
         let chunks = [];
         let stream;
 
-        function updateUI() {
-            document.getElementById('targetDisplay').innerText = `"${conversation[currentIdx]}"`;
+        function init() {
+            document.getElementById('targetText').innerText = `"${sentences[idx]}"`;
             document.getElementById('streakDisplay').innerText = localStorage.getItem('hero_streak') || 0;
         }
 
         function playModel() {
             window.speechSynthesis.cancel();
-            const msg = new SpeechSynthesisUtterance(conversation[currentIdx]);
+            const msg = new SpeechSynthesisUtterance(sentences[idx]);
             msg.lang = 'en-US';
             window.speechSynthesis.speak(msg);
         }
 
-        async function startRecording() {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-                mediaRec = new MediaRecorder(stream, { mimeType: mime });
-                chunks = [];
-
-                mediaRec.ondataavailable = e => chunks.push(e.data);
-                mediaRec.onstop = () => {
-                    const blob = new Blob(chunks, { type: mime });
-                    const url = URL.createObjectURL(blob);
-                    document.getElementById('player').src = url;
-                    document.getElementById('downloadBtn').href = url;
-                    document.getElementById('downloadBtn').download = "my_voice.wav";
+        async function handleMic() {
+            const btn = document.getElementById('micBtn');
+            
+            if (!isRecording) {
+                // STEP 1: START RECORDING
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+                    mediaRec = new MediaRecorder(stream, { mimeType: mime });
+                    chunks = [];
                     
-                    document.getElementById('scoreBtn').classList.remove('hidden');
-                };
+                    mediaRec.ondataavailable = e => chunks.push(e.data);
+                    mediaRec.onstop = async () => {
+                        const blob = new Blob(chunks, { type: mime });
+                        const url = URL.createObjectURL(blob);
+                        document.getElementById('player').src = url;
+                        document.getElementById('downloadBtn').href = url;
+                        document.getElementById('downloadBtn').download = `voice_${idx}.wav`;
+                        
+                        // STEP 3: ANALYZE ONLY AFTER MIC IS TOTALLY OFF
+                        setTimeout(runSpeechAPI, 500); 
+                    };
 
-                mediaRec.start();
-                document.getElementById('recordBtn').classList.add('hidden');
-                document.getElementById('stopBtn').classList.remove('hidden');
-                document.getElementById('resultArea').classList.add('hidden');
-            } catch (e) { alert("Mic blocked. Please check site settings."); }
+                    mediaRec.start();
+                    isRecording = true;
+                    btn.innerText = "STOP & SEE SCORE";
+                    btn.classList.replace('bg-blue-600', 'bg-red-500');
+                    document.getElementById('resultArea').classList.add('hidden');
+                } catch (e) { alert("Mic Permission Denied"); }
+            } else {
+                // STEP 2: STOP RECORDING & RELEASE MIC
+                mediaRec.stop();
+                stream.getTracks().forEach(t => t.stop()); 
+                isRecording = false;
+                btn.innerText = "START RECORDING";
+                btn.classList.replace('bg-red-500', 'bg-blue-600');
+            }
         }
 
-        function stopRecording() {
-            mediaRec.stop();
-            stream.getTracks().forEach(t => t.stop()); // FULL RESET OF MIC
-            document.getElementById('stopBtn').classList.add('hidden');
-        }
-
-        function runScoring() {
+        function runSpeechAPI() {
             const Speech = window.webkitSpeechRecognition || window.SpeechRecognition;
-            if (!Speech) return alert("Browser not supported");
+            if (!Speech) return;
 
             const rec = new Speech();
             rec.lang = 'en-US';
-            
-            rec.onstart = () => {
-                document.getElementById('scoreBtn').innerText = "Processing...";
-            };
 
             rec.onresult = (e) => {
                 const heard = e.results[0][0].transcript;
-                const target = conversation[currentIdx].toLowerCase().replace(/[^\w\s]/gi, '');
+                const target = sentences[idx].toLowerCase().replace(/[^\w\s]/gi, '');
                 const input = heard.toLowerCase().replace(/[^\w\s]/gi, '');
                 
                 const matches = target.split(/\s+/).filter(w => input.split(/\s+/).includes(w)).length;
@@ -135,18 +134,9 @@
                 document.getElementById('heardText').innerText = `"${heard}"`;
                 document.getElementById('scorePercent').innerText = score + "%";
                 document.getElementById('resultArea').classList.remove('hidden');
-                document.getElementById('scoreBtn').classList.add('hidden');
-                document.getElementById('scoreBtn').innerText = "✨ 3. Get Score";
                 
-                if (score > 30) updateStreak();
+                if (score > 40) updateStreak();
             };
-
-            rec.onerror = () => {
-                alert("Speech recognition failed. Please try again.");
-                document.getElementById('recordBtn').classList.remove('hidden');
-                document.getElementById('scoreBtn').classList.add('hidden');
-            };
-
             rec.start();
         }
 
@@ -156,18 +146,18 @@
                 let s = parseInt(localStorage.getItem('hero_streak') || 0) + 1;
                 localStorage.setItem('hero_streak', s);
                 localStorage.setItem('hero_date', today);
-                updateUI();
+                document.getElementById('streakDisplay').innerText = s;
             }
         }
 
         function nextSentence() {
-            currentIdx = (currentIdx + 1) % conversation.length;
-            updateUI();
+            idx = (idx + 1) % sentences.length;
+            document.getElementById('targetText').innerText = `"${sentences[idx]}"`;
             document.getElementById('resultArea').classList.add('hidden');
-            document.getElementById('recordBtn').classList.remove('hidden');
+            window.speechSynthesis.cancel();
         }
 
-        updateUI();
+        init();
     </script>
 </body>
 </html>
