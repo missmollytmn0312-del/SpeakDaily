@@ -415,7 +415,44 @@
       return r;
     }
 
-    recognition = setupRecognition();
+    function setupRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    alert("Speech recognition is not supported on this browser.");
+    return null;
+  }
+  const r = new SR();
+  r.lang = "en-US"; // or "vi-VN"
+  r.interimResults = true;
+  r.continuous = false; // better for mobile
+
+  r.onresult = (event) => {
+    let transcript = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+    }
+    recognizedTranscript = transcript.trim();
+    updateHeard(currentSentence, recognizedTranscript);
+  };
+
+  r.onerror = (e) => {
+    console.warn("Recognition error:", e.error);
+    if (e.error === "not-allowed") {
+      alert("Microphone access denied. Please allow mic permissions.");
+    }
+  };
+
+  return r;
+}
+
+// Start recognition only when user taps "Record"
+btnRecord.addEventListener("click", () => {
+  if (!recognition) recognition = setupRecognition();
+  if (recognition) {
+    recognition.start();
+  }
+});
+
 
     // -------- MediaRecorder (save user voice) --------
     async function startRecording() {
