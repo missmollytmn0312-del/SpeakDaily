@@ -3,46 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Speaking Pro Mobile Fix</title>
+    <title>Speaking Pro | Mobile Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 min-h-screen p-4 pb-20 font-sans select-none">
+<body class="bg-slate-50 min-h-screen p-4 font-sans overflow-x-hidden">
     <div class="max-w-md mx-auto space-y-4">
         
         <div class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-slate-200">
             <h1 class="font-bold text-slate-800">Speaking Pro</h1>
-            <div class="bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-sm">
-                🔥 Streak: <span id="streakCount">0</span>
-            </div>
+            <div class="bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-bold">🔥 Streak: <span id="streakCount">0</span></div>
         </div>
 
         <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200 text-center">
-            <div id="statusLight" class="text-[10px] font-bold text-gray-400 uppercase mb-2">● Standby</div>
+            <div id="statusLabel" class="text-[10px] font-bold text-blue-500 uppercase mb-2 tracking-widest">Ready to practice</div>
             
-            <div class="bg-indigo-50 p-6 rounded-2xl mb-6 min-h-[120px] flex items-center justify-center">
-                <p id="targetText" class="text-lg font-semibold text-indigo-900 leading-relaxed">"Press Next to Start"</p>
+            <div class="bg-indigo-50 p-6 rounded-2xl mb-6 min-h-[100px] flex items-center justify-center">
+                <p id="targetText" class="text-lg font-semibold text-indigo-900 italic leading-relaxed">"Tap Record & Speak"</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-4">
                 <button onclick="playAI()" class="bg-slate-100 py-4 rounded-2xl font-bold text-slate-700 active:bg-slate-200">🔊 Listen</button>
-                <button id="micBtn" onclick="toggleRecording()" class="bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg active:bg-blue-700">🎤 Start</button>
+                <button id="micBtn" onclick="toggleMobileMic()" class="bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg active:bg-blue-700 transition-all">🎤 Record</button>
             </div>
 
-            <button onclick="nextSentence()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold mb-4">Next Sentence ➔</button>
+            <button onclick="nextSentence()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold">Next Sentence ➔</button>
 
-            <div id="resultArea" class="hidden mt-4 pt-4 border-t border-slate-100">
-                <div id="scoreText" class="text-5xl font-black text-blue-600 mb-2">0%</div>
-                <div class="w-full bg-slate-200 rounded-full h-2 mb-4">
-                    <div id="scoreBar" class="h-full bg-blue-600 rounded-full transition-all duration-1000" style="width: 0%"></div>
+            <div id="resultArea" class="hidden mt-6 pt-6 border-t border-slate-100 scale-in">
+                <div id="scoreText" class="text-6xl font-black text-blue-600 mb-2">0%</div>
+                <p id="userTranscript" class="text-xs text-slate-500 italic mb-4 px-4"></p>
+                <div class="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                    <div id="scoreBar" class="h-full bg-blue-600 transition-all duration-1000" style="width: 0%"></div>
                 </div>
-                <p id="userTranscript" class="text-xs text-slate-500 italic"></p>
             </div>
         </div>
 
         <div class="bg-white p-6 rounded-3xl shadow-md border border-slate-200">
-            <h3 class="font-bold text-slate-800 mb-4 text-sm">📁 My Recordings</h3>
+            <h3 class="font-bold text-slate-800 mb-4 text-sm">📁 History & Downloads</h3>
             <div id="gallery" class="space-y-4">
-                <p class="text-slate-400 text-xs italic text-center">Your recordings will appear here.</p>
+                <p class="text-slate-400 text-xs italic text-center">Recordings will appear here.</p>
             </div>
         </div>
     </div>
@@ -57,37 +55,105 @@
         ];
 
         let currentIndex = 0;
-        let isRecording = false;
-        let mediaRecorder;
-        let audioChunks = [];
+        let isActive = false;
         let recognition;
 
-        // --- MOBILE SPEECH ENGINE SETUP ---
+        // --- MOBILE OPTIMIZED SPEECH ENGINE ---
         const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRec) {
             recognition = new SpeechRec();
             recognition.lang = 'en-US';
-            recognition.continuous = false;
             recognition.interimResults = false;
+            recognition.continuous = false; // Required for mobile stability
 
             recognition.onstart = () => {
-                document.getElementById('statusLight').innerText = "● Listening...";
-                document.getElementById('statusLight').className = "text-[10px] font-bold text-red-500 uppercase mb-2 animate-pulse";
+                document.getElementById('statusLabel').innerText = "● LISTENING NOW...";
+                document.getElementById('statusLabel').classList.replace('text-blue-500', 'text-red-500');
             };
 
             recognition.onresult = (e) => {
                 const speech = e.results[0][0].transcript;
-                processScore(speech);
+                processMobileScore(speech);
             };
 
             recognition.onerror = (e) => {
-                console.log("Error:", e.error);
-                document.getElementById('statusLight').innerText = "● Error: " + e.error;
+                document.getElementById('statusLabel').innerText = "ERROR: " + e.error;
+                stopEverything();
             };
 
             recognition.onend = () => {
-                document.getElementById('statusLight').innerText = "● Processing...";
+                if(isActive) stopEverything();
             };
+        }
+
+        function toggleMobileMic() {
+            if (!isActive) {
+                isActive = true;
+                document.getElementById('micBtn').innerText = "🛑 STOP";
+                document.getElementById('micBtn').classList.replace('bg-blue-600', 'bg-red-500');
+                try {
+                    recognition.start();
+                } catch(e) { console.log(e); }
+            } else {
+                stopEverything();
+            }
+        }
+
+        function stopEverything() {
+            isActive = false;
+            recognition.stop();
+            document.getElementById('micBtn').innerText = "🎤 RECORD";
+            document.getElementById('micBtn').classList.replace('bg-red-500', 'bg-blue-600');
+            document.getElementById('statusLabel').innerText = "PROCESSING...";
+            document.getElementById('statusLabel').classList.replace('text-red-500', 'text-blue-500');
+        }
+
+        function processMobileScore(speech) {
+            const target = dailySentences[currentIndex].toLowerCase().replace(/[^\w\s]/gi, '');
+            const input = speech.toLowerCase().replace(/[^\w\s]/gi, '');
+            const tWords = target.split(' ');
+            const iWords = input.split(' ');
+            
+            const matches = tWords.filter(w => iWords.includes(w)).length;
+            const score = Math.round((matches / tWords.length) * 100);
+
+            // Display Results
+            document.getElementById('resultArea').classList.remove('hidden');
+            document.getElementById('scoreText').innerText = score + "%";
+            document.getElementById('scoreBar').style.width = score + "%";
+            document.getElementById('userTranscript').innerText = `Heard: "${speech}"`;
+            document.getElementById('statusLabel').innerText = "DONE!";
+            
+            if (score > 30) updateStreak();
+            
+            // Generate a 'Fake' Audio for Download (Mobile Speech API doesn't allow raw saving easily)
+            addToGallery(speech, dailySentences[currentIndex]);
+        }
+
+        function addToGallery(text, title) {
+            const gallery = document.getElementById('gallery');
+            if (gallery.innerHTML.includes("Recordings will appear")) gallery.innerHTML = "";
+            
+            const div = document.createElement('div');
+            div.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-2 animate-pulse";
+            div.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate w-40">${title}</p>
+                    <button onclick="downloadText('${text}')" class="text-[9px] bg-green-100 text-green-600 px-2 py-1 rounded font-bold">📥 SAVE TRANSCRIPT</button>
+                </div>
+                <p class="text-xs text-slate-600 italic">" ${text} "</p>
+            `;
+            gallery.prepend(div);
+            setTimeout(() => div.classList.remove('animate-pulse'), 1000);
+        }
+
+        function downloadText(text) {
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "practice-transcript.txt";
+            a.click();
         }
 
         function playAI() {
@@ -97,70 +163,11 @@
             window.speechSynthesis.speak(msg);
         }
 
-        async function toggleRecording() {
-            const btn = document.getElementById('micBtn');
-            if (!isRecording) {
-                try {
-                    // 1. Get Mic Access
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    
-                    // 2. Setup Audio Recording
-                    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-                    mediaRecorder = new MediaRecorder(stream, { mimeType });
-                    audioChunks = [];
-                    mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-                    mediaRecorder.onstop = () => {
-                        const blob = new Blob(audioChunks, { type: mimeType });
-                        addVoiceToGallery(URL.createObjectURL(blob), dailySentences[currentIndex]);
-                        stream.getTracks().forEach(t => t.stop());
-                    };
-
-                    // 3. Start Both
-                    mediaRecorder.start();
-                    recognition.start();
-                    
-                    isRecording = true;
-                    btn.innerText = "🛑 Stop";
-                    btn.classList.replace('bg-blue-600', 'bg-red-500');
-                } catch (err) { alert("Enable Microphone in Settings!"); }
-            } else {
-                mediaRecorder.stop();
-                recognition.stop();
-                isRecording = false;
-                btn.innerText = "🎤 Record";
-                btn.classList.replace('bg-red-500', 'bg-blue-600');
-            }
-        }
-
-        function processScore(speech) {
-            const target = dailySentences[currentIndex].toLowerCase().replace(/[^\w\s]/gi, '');
-            const input = speech.toLowerCase().replace(/[^\w\s]/gi, '');
-            const tWords = target.split(' ');
-            const iWords = input.split(' ');
-            const matches = tWords.filter(w => iWords.includes(w)).length;
-            const score = Math.round((matches / tWords.length) * 100);
-
-            document.getElementById('resultArea').classList.remove('hidden');
-            document.getElementById('scoreText').innerText = score + "%";
-            document.getElementById('scoreBar').style.width = score + "%";
-            document.getElementById('userTranscript').innerText = "Heard: " + speech;
-            document.getElementById('statusLight').innerText = "● Done";
-            
-            if (score > 30) updateStreak();
-        }
-
-        function addVoiceToGallery(url, title) {
-            const gallery = document.getElementById('gallery');
-            if (gallery.innerHTML.includes("Your recordings will appear")) gallery.innerHTML = "";
-            const div = document.createElement('div');
-            div.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-2";
-            div.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${title}</p>
-                    <a href="${url}" download="recording.wav" class="text-[9px] bg-blue-100 text-blue-600 px-2 py-1 rounded font-bold">📥 DOWNLOAD</a>
-                </div>
-                <audio src="${url}" controls class="w-full h-8"></audio>`;
-            gallery.prepend(div);
+        function nextSentence() {
+            currentIndex = (currentIndex + 1) % dailySentences.length;
+            document.getElementById('targetText').innerText = `"${dailySentences[currentIndex]}"`;
+            document.getElementById('resultArea').classList.add('hidden');
+            document.getElementById('statusLabel').innerText = "READY";
         }
 
         function updateStreak() {
@@ -173,13 +180,6 @@
                 localStorage.setItem('lastDate', today);
                 document.getElementById('streakCount').innerText = s;
             }
-        }
-
-        function nextSentence() {
-            currentIndex = (currentIndex + 1) % dailySentences.length;
-            document.getElementById('targetText').innerText = `"${dailySentences[currentIndex]}"`;
-            document.getElementById('resultArea').classList.add('hidden');
-            document.getElementById('statusLight').innerText = "● Ready";
         }
 
         document.getElementById('streakCount').innerText = localStorage.getItem('dailyStreak') || 0;
