@@ -456,16 +456,25 @@ btnRecord.addEventListener("click", () => {
 
     // -------- MediaRecorder (save user voice) --------
     async function startRecording() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        chunks = [];
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) chunks.push(e.data);
-        };
-        mediaRecorder.onstop = () => {
-          lastBlob = new Blob(chunks, { type: "audio/webm" });
-          const url = URL.createObjectURL(lastBlob);
+  try {
+    // Must be triggered by a button click
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.start();
+
+    // Start recognition only if supported
+    if (recognition) {
+      recognition.continuous = false; // better for mobile
+      recognition.start();
+    }
+
+    btnRecord.textContent = "Recording…";
+    btnStop.disabled = false;
+  } catch (err) {
+    alert("Microphone access failed. Please allow mic permissions in your browser settings.");
+    console.error(err);
+  }
+}
           audioPlayer.src = url;
           localStorage.setItem("lastRecording", url); // store object URL handle (note: page refresh loses actual blob, we also store binary below)
           storeBlob(lastBlob); // persist actual binary
