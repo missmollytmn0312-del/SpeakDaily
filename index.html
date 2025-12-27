@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Speaking Pro | Mobile Download</title>
+    <title>Speaking Pro Mobile Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 min-h-screen p-4 pb-20 font-sans select-none">
@@ -17,30 +17,32 @@
         </div>
 
         <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200 text-center">
+            <div id="statusLight" class="text-[10px] font-bold text-gray-400 uppercase mb-2">● Standby</div>
+            
             <div class="bg-indigo-50 p-6 rounded-2xl mb-6 min-h-[120px] flex items-center justify-center">
-                <p id="targetText" class="text-lg font-semibold text-indigo-900 leading-relaxed italic">"Loading..."</p>
+                <p id="targetText" class="text-lg font-semibold text-indigo-900 leading-relaxed">"Press Next to Start"</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <button onclick="playAI()" class="bg-slate-100 py-4 rounded-2xl font-bold text-slate-700 active:scale-95 transition">🔊 Listen</button>
-                <button id="micBtn" onclick="toggleRecording()" class="bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">🎤 Record</button>
+                <button onclick="playAI()" class="bg-slate-100 py-4 rounded-2xl font-bold text-slate-700 active:bg-slate-200">🔊 Listen</button>
+                <button id="micBtn" onclick="toggleRecording()" class="bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg active:bg-blue-700">🎤 Start</button>
             </div>
 
-            <button onclick="nextSentence()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold active:bg-slate-900 transition">Next Sentence ➔</button>
+            <button onclick="nextSentence()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold mb-4">Next Sentence ➔</button>
 
-            <div id="resultArea" class="hidden mt-6 pt-4 border-t border-slate-100">
+            <div id="resultArea" class="hidden mt-4 pt-4 border-t border-slate-100">
                 <div id="scoreText" class="text-5xl font-black text-blue-600 mb-2">0%</div>
                 <div class="w-full bg-slate-200 rounded-full h-2 mb-4">
-                    <div id="scoreBar" class="h-full bg-blue-600 rounded-full transition-all duration-700" style="width: 0%"></div>
+                    <div id="scoreBar" class="h-full bg-blue-600 rounded-full transition-all duration-1000" style="width: 0%"></div>
                 </div>
                 <p id="userTranscript" class="text-xs text-slate-500 italic"></p>
             </div>
         </div>
 
         <div class="bg-white p-6 rounded-3xl shadow-md border border-slate-200">
-            <h3 class="font-bold text-slate-800 mb-4">📁 Voice History</h3>
+            <h3 class="font-bold text-slate-800 mb-4 text-sm">📁 My Recordings</h3>
             <div id="gallery" class="space-y-4">
-                <p class="text-slate-400 text-sm italic text-center">Your recordings appear here.</p>
+                <p class="text-slate-400 text-xs italic text-center">Your recordings will appear here.</p>
             </div>
         </div>
     </div>
@@ -60,20 +62,32 @@
         let audioChunks = [];
         let recognition;
 
-        // Mobile-Optimized Speech Engine
+        // --- MOBILE SPEECH ENGINE SETUP ---
         const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRec) {
             recognition = new SpeechRec();
             recognition.lang = 'en-US';
+            recognition.continuous = false;
             recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                document.getElementById('statusLight').innerText = "● Listening...";
+                document.getElementById('statusLight').className = "text-[10px] font-bold text-red-500 uppercase mb-2 animate-pulse";
+            };
 
             recognition.onresult = (e) => {
                 const speech = e.results[0][0].transcript;
-                processFinalResult(speech);
+                processScore(speech);
             };
-            
-            recognition.onerror = (e) => console.log("Speech Engine Error:", e.error);
+
+            recognition.onerror = (e) => {
+                console.log("Error:", e.error);
+                document.getElementById('statusLight').innerText = "● Error: " + e.error;
+            };
+
+            recognition.onend = () => {
+                document.getElementById('statusLight').innerText = "● Processing...";
+            };
         }
 
         function playAI() {
@@ -87,39 +101,38 @@
             const btn = document.getElementById('micBtn');
             if (!isRecording) {
                 try {
+                    // 1. Get Mic Access
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    // 2. Setup Audio Recording
                     const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
                     mediaRecorder = new MediaRecorder(stream, { mimeType });
                     audioChunks = [];
-
                     mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
                     mediaRecorder.onstop = () => {
-                        const audioBlob = new Blob(audioChunks, { type: mimeType });
-                        const audioUrl = URL.createObjectURL(audioBlob);
-                        addVoiceToGallery(audioUrl, dailySentences[currentIndex]);
+                        const blob = new Blob(audioChunks, { type: mimeType });
+                        addVoiceToGallery(URL.createObjectURL(blob), dailySentences[currentIndex]);
                         stream.getTracks().forEach(t => t.stop());
                     };
 
+                    // 3. Start Both
                     mediaRecorder.start();
-                    if (recognition) recognition.start();
+                    recognition.start();
                     
                     isRecording = true;
                     btn.innerText = "🛑 Stop";
                     btn.classList.replace('bg-blue-600', 'bg-red-500');
-                } catch (err) {
-                    alert("Please enable microphone access in your settings.");
-                }
+                } catch (err) { alert("Enable Microphone in Settings!"); }
             } else {
                 mediaRecorder.stop();
-                // We don't stop recognition immediately on mobile, we let it finish
-                setTimeout(() => { if(recognition) recognition.stop(); }, 500); 
+                recognition.stop();
                 isRecording = false;
                 btn.innerText = "🎤 Record";
                 btn.classList.replace('bg-red-500', 'bg-blue-600');
             }
         }
 
-        function processFinalResult(speech) {
+        function processScore(speech) {
             const target = dailySentences[currentIndex].toLowerCase().replace(/[^\w\s]/gi, '');
             const input = speech.toLowerCase().replace(/[^\w\s]/gi, '');
             const tWords = target.split(' ');
@@ -131,24 +144,22 @@
             document.getElementById('scoreText').innerText = score + "%";
             document.getElementById('scoreBar').style.width = score + "%";
             document.getElementById('userTranscript').innerText = "Heard: " + speech;
+            document.getElementById('statusLight').innerText = "● Done";
             
-            if (score > 40) updateStreak();
+            if (score > 30) updateStreak();
         }
 
         function addVoiceToGallery(url, title) {
             const gallery = document.getElementById('gallery');
-            if (gallery.innerHTML.includes("Your recordings appear")) gallery.innerHTML = "";
-            const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
+            if (gallery.innerHTML.includes("Your recordings will appear")) gallery.innerHTML = "";
             const div = document.createElement('div');
             div.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-2";
             div.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${timestamp} - ${title}</p>
-                    <a href="${url}" download="recording.wav" class="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-1 rounded font-bold">📥 DOWNLOAD</a>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${title}</p>
+                    <a href="${url}" download="recording.wav" class="text-[9px] bg-blue-100 text-blue-600 px-2 py-1 rounded font-bold">📥 DOWNLOAD</a>
                 </div>
-                <audio src="${url}" controls class="w-full h-8"></audio>
-            `;
+                <audio src="${url}" controls class="w-full h-8"></audio>`;
             gallery.prepend(div);
         }
 
@@ -156,7 +167,6 @@
             const today = new Date().toDateString();
             const lastDate = localStorage.getItem('lastDate');
             let s = parseInt(localStorage.getItem('dailyStreak') || 0);
-
             if (lastDate !== today) {
                 s++;
                 localStorage.setItem('dailyStreak', s);
@@ -169,6 +179,7 @@
             currentIndex = (currentIndex + 1) % dailySentences.length;
             document.getElementById('targetText').innerText = `"${dailySentences[currentIndex]}"`;
             document.getElementById('resultArea').classList.add('hidden');
+            document.getElementById('statusLight').innerText = "● Ready";
         }
 
         document.getElementById('streakCount').innerText = localStorage.getItem('dailyStreak') || 0;
