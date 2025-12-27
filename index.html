@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Speaking Pro | Sequential Mode</title>
+    <title>Hero Speaker | Final Stability</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 min-h-screen p-4 font-sans">
@@ -11,37 +11,30 @@
         
         <div class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-slate-200">
             <h1 class="font-bold text-slate-800">Hero Speaker</h1>
-            <div class="bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-bold">🔥 Streak: <span id="streakCount">0</span></div>
+            <div class="bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-sm">🔥 <span id="streakCount">0</span></div>
         </div>
 
-        <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200 text-center">
-            <div id="stepIndicator" class="text-[10px] font-bold text-blue-500 uppercase mb-4 tracking-[0.2em]">Step 1: Listen to AI</div>
+        <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200">
+            <div id="stepIndicator" class="text-[10px] font-bold text-blue-500 uppercase mb-4 tracking-widest text-center">Step 1: Listen</div>
             
             <div class="bg-indigo-50 p-6 rounded-2xl mb-6 min-h-[100px] flex items-center justify-center border border-indigo-100">
-                <p id="targetText" class="text-xl font-bold text-indigo-900 leading-tight italic">"I'm looking forward to our meeting later this afternoon."</p>
+                <p id="targetText" class="text-lg font-bold text-indigo-900 text-center leading-tight">"I'm looking forward to our meeting later this afternoon."</p>
+            </div>
+
+            <div id="liveFeedback" class="hidden mb-4 p-3 bg-slate-900 rounded-xl border-l-4 border-blue-500">
+                <p class="text-[9px] text-slate-400 font-bold uppercase mb-1">Live Detection:</p>
+                <p id="interimText" class="text-sm text-white italic font-medium">Listening for your voice...</p>
             </div>
 
             <div id="actionArea" class="space-y-3">
-                <button id="listenBtn" onclick="playAI()" class="w-full bg-slate-100 py-4 rounded-2xl font-bold text-slate-700">🔊 Listen to AI</button>
-                <button id="micBtn" onclick="startStep2()" class="hidden w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg">🎤 Start Recording</button>
-                <button id="stopBtn" onclick="stopStep2()" class="hidden w-full bg-red-500 text-white py-4 rounded-2xl font-bold animate-pulse">🛑 Stop & Analyze</button>
+                <button id="listenBtn" onclick="playAI()" class="w-full bg-slate-100 py-4 rounded-2xl font-bold text-slate-700 active:bg-slate-200">🔊 Listen to AI</button>
+                <button id="micBtn" onclick="startRecording()" class="hidden w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg active:bg-blue-700">🎤 Start Recording</button>
+                <button id="stopBtn" onclick="stopRecording()" class="hidden w-full bg-red-500 text-white py-4 rounded-2xl font-bold animate-pulse">🛑 Stop & See Score</button>
             </div>
 
-            <div id="timerArea" class="hidden mt-6">
-                <p class="text-sm font-medium text-slate-600 mb-2">Analyzing your pronunciation...</p>
-                <div class="w-full bg-slate-100 h-4 rounded-full overflow-hidden border">
-                    <div id="timerBar" class="h-full bg-orange-500 transition-all duration-[30000ms] ease-linear" style="width: 0%"></div>
-                </div>
-                <p id="countdown" class="text-xs mt-2 text-slate-400 font-bold">30s remaining</p>
-            </div>
-
-            <div id="resultArea" class="hidden mt-6 pt-6 border-t border-slate-100">
-                <div id="scoreText" class="text-7xl font-black text-blue-600 mb-2">0%</div>
-                <div class="bg-slate-900 p-4 rounded-2xl text-left mb-4">
-                    <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Transcript Detected:</p>
-                    <p id="userTranscript" class="text-sm text-white italic">...</p>
-                </div>
-                <button onclick="resetApp()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold">Try Next Sentence ➔</button>
+            <div id="resultArea" class="hidden mt-6 pt-6 border-t-2 border-slate-50">
+                <div id="scoreText" class="text-7xl font-black text-blue-600 text-center mb-4">0%</div>
+                <button onclick="nextSentence()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold">Next Sentence ➔</button>
             </div>
         </div>
 
@@ -61,18 +54,23 @@
         let mediaRecorder;
         let audioChunks = [];
         let recognition;
-        let finalSpeech = "";
+        let capturedText = "";
 
-        // Setup Speech-to-Text
+        // --- Initialize Speech Engine with Mobile-Specific Tweaks ---
         const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRec) {
             recognition = new SpeechRec();
             recognition.lang = 'en-US';
             recognition.continuous = true;
+            recognition.interimResults = true;
+
             recognition.onresult = (e) => {
-                for (let i = e.resultIndex; i < e.results.length; i++) {
-                    finalSpeech += e.results[i][0].transcript;
+                let live = "";
+                for (let i = 0; i < e.results.length; i++) {
+                    live += e.results[i][0].transcript;
                 }
+                capturedText = live;
+                document.getElementById('interimText').innerText = live;
             };
         }
 
@@ -82,84 +80,66 @@
             msg.onend = () => {
                 document.getElementById('listenBtn').classList.add('hidden');
                 document.getElementById('micBtn').classList.remove('hidden');
-                document.getElementById('stepIndicator').innerText = "Step 2: Your Turn (Record)";
+                document.getElementById('stepIndicator').innerText = "Step 2: Record";
             };
             window.speechSynthesis.speak(msg);
         }
 
-        async function startStep2() {
+        async function startRecording() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
                 mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
                 audioChunks = [];
-                finalSpeech = "";
+                capturedText = "";
+                
+                document.getElementById('interimText').innerText = "Listening...";
+                document.getElementById('liveFeedback').classList.remove('hidden');
 
                 mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
                 mediaRecorder.onstop = () => {
                     const blob = new Blob(audioChunks, { type: mime });
-                    saveToGallery(URL.createObjectURL(blob));
+                    addGallery(URL.createObjectURL(blob));
                     stream.getTracks().forEach(t => t.stop());
                 };
 
                 mediaRecorder.start();
-                if(recognition) recognition.start();
+                recognition.start();
 
                 document.getElementById('micBtn').classList.add('hidden');
                 document.getElementById('stopBtn').classList.remove('hidden');
-            } catch (err) { alert("Mic required!"); }
+            } catch (err) { alert("Mic permission denied!"); }
         }
 
-        function stopStep2() {
+        function stopRecording() {
             if(mediaRecorder) mediaRecorder.stop();
             if(recognition) recognition.stop();
             
             document.getElementById('stopBtn').classList.add('hidden');
-            document.getElementById('stepIndicator').innerText = "Step 3: Processing Audio";
-            startTimer();
-        }
-
-        function startTimer() {
-            document.getElementById('timerArea').classList.remove('hidden');
-            setTimeout(() => document.getElementById('timerBar').style.width = "100%", 100);
+            document.getElementById('stepIndicator').innerText = "Result";
             
-            let timeLeft = 30;
-            const interval = setInterval(() => {
-                timeLeft--;
-                document.getElementById('countdown').innerText = timeLeft + "s remaining";
-                if(timeLeft <= 0) {
-                    clearInterval(interval);
-                    showFinalResult();
-                }
-            }, 1000);
-        }
-
-        function showFinalResult() {
-            document.getElementById('timerArea').classList.add('hidden');
-            document.getElementById('resultArea').classList.remove('hidden');
-            document.getElementById('stepIndicator').innerText = "Step 4: View Accuracy";
-            
+            // Calculate Score Immediately
             const target = dailySentences[currentIndex].toLowerCase().replace(/[^\w\s]/gi, '');
-            const input = finalSpeech.toLowerCase().replace(/[^\w\s]/gi, '');
+            const input = capturedText.toLowerCase().replace(/[^\w\s]/gi, '');
             const tWords = target.split(/\s+/);
             const iWords = input.split(/\s+/);
             const matches = tWords.filter(w => iWords.includes(w)).length;
             const score = Math.round((matches / tWords.length) * 100);
 
+            document.getElementById('resultArea').classList.remove('hidden');
             document.getElementById('scoreText').innerText = score + "%";
-            document.getElementById('userTranscript').innerText = finalSpeech || "(No speech detected)";
             
             if (score > 30) updateStreak();
         }
 
-        function saveToGallery(url) {
+        function addGallery(url) {
             const gallery = document.getElementById('gallery');
             const div = document.createElement('div');
             div.className = "bg-white p-4 rounded-2xl shadow-sm border flex flex-col gap-2";
             div.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <span class="text-[9px] font-bold text-slate-400">YOUR RECORDING</span>
-                    <a href="${url}" download="voice.wav" class="text-[10px] bg-blue-600 text-white px-3 py-1 rounded-full font-bold">📥 DOWNLOAD</a>
+                    <span class="text-[9px] font-bold text-slate-400">YOUR VOICE</span>
+                    <a href="${url}" download="practice.wav" class="text-[10px] bg-blue-600 text-white px-3 py-1 rounded-full font-bold">📥 DOWNLOAD</a>
                 </div>
                 <audio src="${url}" controls class="w-full h-8"></audio>`;
             gallery.prepend(div);
@@ -175,14 +155,13 @@
             }
         }
 
-        function resetApp() {
+        function nextSentence() {
             currentIndex = (currentIndex + 1) % dailySentences.length;
             document.getElementById('targetText').innerText = dailySentences[currentIndex];
             document.getElementById('resultArea').classList.add('hidden');
+            document.getElementById('liveFeedback').classList.add('hidden');
             document.getElementById('listenBtn').classList.remove('hidden');
-            document.getElementById('stepIndicator').innerText = "Step 1: Listen to AI";
-            document.getElementById('timerBar').style.width = "0%";
-            finalSpeech = "";
+            document.getElementById('stepIndicator').innerText = "Step 1: Listen";
         }
 
         document.getElementById('streakCount').innerText = localStorage.getItem('dailyStreak') || 0;
