@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hero Speaker Pro</title>
+    <title>Hero Speaker | Data-Sync Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .record-active { animation: pulse 1.5s infinite; background-color: #ef4444 !important; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .record-active { animation: pulse 1.2s infinite; background-color: #ef4444 !important; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.98); opacity: 0.8; } }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen p-4 font-sans select-none">
@@ -15,177 +15,177 @@
         
         <div class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-slate-200">
             <div>
-                <h1 class="font-black text-slate-800 text-xl tracking-tight">HERO SPEAKER</h1>
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Master American English</p>
+                <h1 class="font-black text-slate-800 text-xl tracking-tight leading-none">HERO SPEAKER</h1>
+                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Practice Conversation</p>
             </div>
-            <div class="bg-orange-100 text-orange-600 px-4 py-2 rounded-2xl flex items-center gap-2 border border-orange-200">
-                <span class="text-xl">🔥</span>
-                <span id="streakDisplay" class="font-bold text-lg">0</span>
+            <div class="bg-orange-500 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2">
+                <span>🔥</span> <span id="streakDisplay">0</span>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200 relative overflow-hidden">
-            <div id="targetText" class="text-xl font-bold text-slate-800 text-center leading-relaxed mb-6">
-                "The quick brown fox jumps over the lazy dog."
+        <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200">
+            <div class="bg-indigo-50 p-6 rounded-2xl mb-6 min-h-[120px] flex items-center justify-center border border-indigo-100">
+                <p id="targetText" class="text-xl font-bold text-indigo-900 text-center leading-snug">
+                    Loading conversation...
+                </p>
             </div>
 
             <div class="flex flex-col gap-3">
-                <button onclick="playModel()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition-all">🔊 Listen to Model</button>
-                
-                <button id="mainBtn" onclick="handleMicClick()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-lg shadow-blue-200 transition-all flex justify-center items-center gap-3">
+                <button onclick="playModelVoice()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition-all border border-slate-200">
+                    🔊 Listen to American AI
+                </button>
+                <button id="mainBtn" onclick="handleMicToggle()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-lg transition-all flex justify-center items-center gap-3">
                     <span id="micIcon">🎤</span> <span id="btnText">START RECORDING</span>
                 </button>
             </div>
         </div>
 
-        <div id="resultArea" class="hidden space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div id="resultArea" class="hidden space-y-4">
             <div class="bg-slate-900 rounded-3xl p-6 text-white shadow-2xl">
-                <div class="flex justify-between items-start mb-4">
+                <div class="flex justify-between items-end mb-4 border-b border-white/10 pb-4">
                     <div>
-                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Accuracy Score</p>
-                        <h2 id="scorePercent" class="text-6xl font-black text-blue-400">0%</h2>
+                        <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Accuracy</p>
+                        <h2 id="scorePercent" class="text-5xl font-black text-blue-400">0%</h2>
                     </div>
-                    <div class="text-right">
-                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Heard Part</p>
-                        <p id="heardText" class="italic text-slate-300 text-sm mt-1">...</p>
+                    <div class="text-right max-w-[60%]">
+                        <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">We Heard</p>
+                        <p id="heardText" class="italic text-slate-300 text-sm truncate">...</p>
                     </div>
                 </div>
                 
-                <div id="audioControls" class="bg-white/10 p-3 rounded-2xl flex items-center gap-3">
+                <div class="bg-white/5 p-3 rounded-2xl flex items-center gap-3">
                     <audio id="player" controls class="h-8 flex-grow"></audio>
-                    <a id="downloadBtn" class="bg-blue-500 p-2 rounded-lg text-white font-bold text-xs">📥</a>
+                    <a id="downloadBtn" class="bg-blue-600 px-3 py-2 rounded-xl text-[10px] font-bold">SAVE</a>
                 </div>
             </div>
 
-            <button onclick="nextSentence()" class="w-full bg-white border-2 border-slate-200 py-4 rounded-2xl font-bold text-slate-600 hover:bg-slate-50">
-                Next Sentence ➔
+            <button onclick="changeSentence(1)" class="w-full bg-white border-2 border-slate-200 py-4 rounded-2xl font-bold text-slate-600 active:bg-slate-100">
+                Next Conversation ➔
             </button>
         </div>
     </div>
 
     <script>
-        const sentences = [
+        /**
+         * 📝 UPDATE THIS LIST TO CHANGE THE CONVERSATION
+         * No need to change any other part of the code!
+         */
+        const conversationData = [
+            "Hi there! How have you been lately?",
             "I'm looking forward to our meeting later this afternoon.",
-            "The journey of a thousand miles begins with a single step.",
-            "Consistency is more important than perfection.",
-            "Could you please repeat that? I didn't quite catch it.",
-            "The quick brown fox jumps over the lazy dog."
+            "Would you like to grab a cup of coffee tomorrow morning?",
+            "That's a great idea! I've heard that new cafe is wonderful.",
+            "The journey of a thousand miles begins with a single step."
         ];
-        
-        let idx = 0;
+
+        let currentIdx = 0;
         let isRecording = false;
-        let mediaRecorder;
-        let audioChunks = [];
-        let stream;
+        let mediaRec;
+        let chunks = [];
+        let activeStream;
 
-        // 1. Streak Logic
-        function updateStreak() {
-            const today = new Date().toDateString();
-            const lastDate = localStorage.getItem('hero_last_date');
-            let streak = parseInt(localStorage.getItem('hero_streak') || 0);
-
-            if (lastDate !== today) {
-                if (lastDate === new Date(Date.now() - 86400000).toDateString()) {
-                    streak++;
-                } else {
-                    streak = 1;
-                }
-                localStorage.setItem('hero_streak', streak);
-                localStorage.setItem('hero_last_date', today);
-            }
-            document.getElementById('streakDisplay').innerText = streak;
+        // Initialize Display
+        function initApp() {
+            document.getElementById('targetText').innerText = `"${conversationData[currentIdx]}"`;
+            document.getElementById('streakDisplay').innerText = localStorage.getItem('hero_streak') || 0;
         }
-        document.getElementById('streakDisplay').innerText = localStorage.getItem('hero_streak') || 0;
 
-        // Play Model Voice
-        function playModel() {
+        // --- 🔊 LISTEN FUNCTION (Synced with List) ---
+        function playModelVoice() {
             window.speechSynthesis.cancel();
-            const msg = new SpeechSynthesisUtterance(sentences[idx]);
-            msg.lang = 'en-US';
-            window.speechSynthesis.speak(msg);
+            const utterance = new SpeechSynthesisUtterance(conversationData[currentIdx]);
+            utterance.lang = 'en-US'; // American Accent
+            utterance.rate = 0.85;    // Slightly slower for learning
+            window.speechSynthesis.speak(utterance);
         }
 
-        // 2. Dual-Mode Record Logic
-        async function handleMicClick() {
+        // --- 🎤 RECORDING LOGIC ---
+        async function handleMicToggle() {
             const btn = document.getElementById('mainBtn');
             const txt = document.getElementById('btnText');
             
             if (!isRecording) {
-                // START
                 try {
-                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
+                    activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+                    mediaRec = new MediaRecorder(activeStream, { mimeType });
+                    chunks = [];
                     
-                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                    mediaRecorder.onstop = () => {
-                        const blob = new Blob(audioChunks, { type: 'audio/wav' });
-                        const url = URL.createObjectURL(blob);
-                        document.getElementById('player').src = url;
-                        document.getElementById('downloadBtn').href = url;
-                        document.getElementById('downloadBtn').download = `practice_${Date.now()}.wav`;
+                    mediaRec.ondataavailable = e => chunks.push(e.data);
+                    mediaRec.onstop = () => {
+                        const blob = new Blob(chunks, { type: mimeType });
+                        const audioURL = URL.createObjectURL(blob);
+                        document.getElementById('player').src = audioURL;
+                        document.getElementById('downloadBtn').href = audioURL;
+                        document.getElementById('downloadBtn').download = `practice_audio.wav`;
                     };
 
-                    mediaRecorder.start();
+                    mediaRec.start();
                     isRecording = true;
                     btn.classList.add('record-active');
                     txt.innerText = "STOP RECORDING";
                     document.getElementById('resultArea').classList.add('hidden');
-                } catch (err) { alert("Please allow microphone access."); }
+                } catch (err) { alert("Mic Access Needed!"); }
             } else {
-                // STOP
-                mediaRecorder.stop();
-                stream.getTracks().forEach(t => t.stop());
+                mediaRec.stop();
+                activeStream.getTracks().forEach(track => track.stop());
                 isRecording = false;
                 btn.classList.remove('record-active');
                 txt.innerText = "START RECORDING";
                 
-                // 4. Extract Text & 3. Score
-                runAnalysis();
+                processSpeechToText();
             }
         }
 
-        function runAnalysis() {
-            const Speech = window.webkitSpeechRecognition || window.SpeechRecognition;
-            const rec = new Speech();
-            rec.lang = 'en-US';
+        // --- 🎯 SCORING & TEXT EXTRACTION ---
+        function processSpeechToText() {
+            const SpeechAPI = window.webkitSpeechRecognition || window.SpeechRecognition;
+            const recognition = new SpeechAPI();
+            recognition.lang = 'en-US';
 
-            rec.onresult = (e) => {
-                const heard = e.results[0][0].transcript;
-                calculateScore(heard);
-            };
+            recognition.onresult = (event) => {
+                const resultText = event.results[0][0].transcript;
+                
+                // Compare with current list item
+                const target = conversationData[currentIdx].toLowerCase().replace(/[^\w\s]/gi, '');
+                const input = resultText.toLowerCase().replace(/[^\w\s]/gi, '');
+                
+                const targetWords = target.split(/\s+/);
+                const inputWords = input.split(/\s+/);
+                const matches = targetWords.filter(w => inputWords.includes(w)).length;
+                const score = Math.round((matches / targetWords.length) * 100);
 
-            rec.onerror = () => {
-                document.getElementById('heardText').innerText = "Could not detect speech. Try again!";
-                document.getElementById('scorePercent').innerText = "0%";
+                document.getElementById('heardText').innerText = `"${resultText}"`;
+                document.getElementById('scorePercent').innerText = score + "%";
                 document.getElementById('resultArea').classList.remove('hidden');
+                
+                if (score > 30) saveStreak();
             };
-
-            rec.start();
+            recognition.start();
         }
 
-        function calculateScore(heard) {
-            const target = sentences[idx].toLowerCase().replace(/[^\w\s]/gi, '');
-            const input = heard.toLowerCase().replace(/[^\w\s]/gi, '');
-            
-            const targetWords = target.split(' ');
-            const inputWords = input.split(' ');
-            
-            const matches = targetWords.filter(word => inputWords.includes(word)).length;
-            const score = Math.round((matches / targetWords.length) * 100);
+        function saveStreak() {
+            const today = new Date().toDateString();
+            const lastDate = localStorage.getItem('hero_date');
+            let streak = parseInt(localStorage.getItem('hero_streak') || 0);
 
-            document.getElementById('heardText').innerText = `"${heard}"`;
-            document.getElementById('scorePercent').innerText = score + "%";
-            document.getElementById('resultArea').classList.remove('hidden');
-            
-            if (score > 40) updateStreak();
+            if (lastDate !== today) {
+                streak++;
+                localStorage.setItem('hero_streak', streak);
+                localStorage.setItem('hero_date', today);
+                document.getElementById('streakDisplay').innerText = streak;
+            }
         }
 
-        function nextSentence() {
-            idx = (idx + 1) % sentences.length;
-            document.getElementById('targetText').innerText = `"${sentences[idx]}"`;
+        function changeSentence(step) {
+            currentIdx = (currentIdx + step) % conversationData.length;
+            document.getElementById('targetText').innerText = `"${conversationData[currentIdx]}"`;
             document.getElementById('resultArea').classList.add('hidden');
+            window.speechSynthesis.cancel();
         }
+
+        // Run on load
+        initApp();
     </script>
 </body>
 </html>
