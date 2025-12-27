@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Speaking Pro | Pro Logic</title>
+    <title>Speaking Hero | Mobile Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 min-h-screen p-4 font-sans flex flex-col items-center">
@@ -16,28 +16,27 @@
 
         <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200">
             <div class="bg-indigo-50 p-6 rounded-2xl mb-6 text-lg font-bold text-indigo-900 text-center leading-tight">
-                <p id="targetText">"The journey of a thousand miles begins with a single step."</p>
+                <p id="targetText">"I really appreciate your help with this project."</p>
             </div>
 
             <div id="statusBox" class="text-center mb-4">
-                <span id="statusLabel" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ready to practice</span>
+                <span id="statusLabel" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Step 1: Record your voice</span>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div id="controls" class="grid grid-cols-2 gap-3">
                 <button onclick="playAI()" class="bg-slate-100 py-4 rounded-2xl font-bold text-slate-700 active:bg-slate-200">🔊 Listen</button>
-                <button id="micBtn" onclick="toggleRec()" class="bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">🎤 Record</button>
+                <button id="micBtn" onclick="toggleRec()" class="bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg transition-all">🎤 Start Record</button>
             </div>
+
+            <button id="analyzeBtn" onclick="runSpeechAPI()" class="hidden mt-3 w-full bg-orange-500 text-white py-4 rounded-2xl font-bold shadow-lg animate-bounce">✨ Analyze Accuracy</button>
         </div>
 
-        <div id="resultArea" class="hidden bg-white p-6 rounded-3xl shadow-lg border border-slate-200 text-center animate-in fade-in">
-            <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Accuracy Score</p>
+        <div id="resultArea" class="hidden bg-white p-6 rounded-3xl shadow-lg border border-slate-200 text-center">
             <div id="scoreText" class="text-7xl font-black text-blue-600 mb-4">0%</div>
-            
             <div class="bg-slate-900 p-4 rounded-2xl text-left mb-4">
-                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Phone Heard:</p>
-                <p id="userTranscript" class="text-sm text-white italic font-medium tracking-wide">...</p>
+                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">What we heard:</p>
+                <p id="userTranscript" class="text-sm text-white italic font-medium">...</p>
             </div>
-
             <button onclick="nextStep()" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold">Next Sentence ➔</button>
         </div>
 
@@ -46,19 +45,17 @@
 
     <script>
         const sentences = [
+            "I really appreciate your help with this project.",
             "The journey of a thousand miles begins with a single step.",
             "I'm looking forward to our meeting later this afternoon.",
-            "Consistency is more important than perfection.",
-            "Could you please repeat that? I didn't quite catch what you said.",
-            "I really appreciate your help with this project."
+            "Consistency is more important than perfection."
         ];
         let idx = 0;
         let isRec = false;
         let recorder;
         let chunks = [];
-        let recognition;
+        let streamRef = null;
 
-        // Fixes the "Listen Once" mobile bug
         function playAI() {
             window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(sentences[idx]);
@@ -72,52 +69,61 @@
 
             if (!isRec) {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-                    recorder = new MediaRecorder(stream);
+                    streamRef = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    recorder = new MediaRecorder(streamRef);
                     chunks = [];
                     
-                    // Setup Speech Recognition
-                    const Speech = window.webkitSpeechRecognition || window.SpeechRecognition;
-                    recognition = new Speech();
-                    recognition.lang = 'en-US';
-                    recognition.interimResults = false;
-
-                    recognition.onresult = (e) => {
-                        const heard = e.results[0][0].transcript;
-                        processScore(heard);
-                    };
-
-                    recognition.onstart = () => {
-                        status.innerText = "● Recording Voice...";
-                        status.className = "text-[10px] font-bold text-red-500 uppercase tracking-widest";
-                    };
-
                     recorder.ondataavailable = (e) => chunks.push(e.data);
                     recorder.onstop = () => {
-                        const blob = new Blob(chunks, { type: mime });
-                        addToGallery(URL.createObjectURL(blob));
-                        stream.getTracks().forEach(t => t.stop());
+                        const blob = new Blob(chunks, { type: recorder.mimeType });
+                        const url = URL.createObjectURL(blob);
+                        addToGallery(url);
+                        
+                        // Show the Analyze button once the file is safe
+                        document.getElementById('analyzeBtn').classList.remove('hidden');
+                        status.innerText = "Step 2: Click Analyze";
                     };
 
                     recorder.start();
-                    recognition.start();
                     isRec = true;
                     btn.innerText = "🛑 Stop";
                     btn.className = "bg-red-500 text-white py-4 rounded-2xl font-bold shadow-lg w-full col-span-2";
-                } catch (e) { alert("Mic Access Denied"); }
+                    status.innerText = "Recording...";
+                } catch (e) { alert("Mic required"); }
             } else {
                 recorder.stop();
-                recognition.stop();
+                // CRITICAL: Kill the mic stream so the Speech API can take over
+                streamRef.getTracks().forEach(t => t.stop());
                 isRec = false;
-                btn.innerText = "🎤 Record";
+                btn.innerText = "🎤 Start Record";
                 btn.className = "bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg";
-                status.innerText = "Processing...";
-                status.className = "text-[10px] font-bold text-blue-500 uppercase tracking-widest";
             }
         }
 
-        function processScore(text) {
+        function runSpeechAPI() {
+            const status = document.getElementById('statusLabel');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            status.innerText = "Listening for transcription...";
+            analyzeBtn.innerText = "Processing...";
+
+            const Speech = window.webkitSpeechRecognition || window.SpeechRecognition;
+            const recognition = new Speech();
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (e) => {
+                const heardText = e.results[0][0].transcript;
+                showFinalScore(heardText);
+            };
+
+            recognition.onerror = () => {
+                alert("Speech detection failed. Try speaking while recording is active.");
+                analyzeBtn.classList.add('hidden');
+            };
+
+            recognition.start();
+        }
+
+        function showFinalScore(text) {
             const target = sentences[idx].toLowerCase().replace(/[^\w\s]/gi, '');
             const input = text.toLowerCase().replace(/[^\w\s]/gi, '');
             const tWords = target.split(/\s+/);
@@ -125,10 +131,10 @@
             const matches = tWords.filter(w => iWords.includes(w)).length;
             const score = Math.round((matches / tWords.length) * 100);
 
+            document.getElementById('analyzeBtn').classList.add('hidden');
             document.getElementById('resultArea').classList.remove('hidden');
             document.getElementById('scoreText').innerText = score + "%";
             document.getElementById('userTranscript').innerText = `"${text}"`;
-            document.getElementById('statusLabel').innerText = "Done!";
             
             if (score > 30) updateStreak();
         }
@@ -138,10 +144,11 @@
             div.className = "bg-white p-4 rounded-2xl shadow-sm border flex flex-col gap-2 w-full";
             div.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Voice File</span>
-                    <a href="${url}" download="practice.wav" class="text-[10px] bg-green-500 text-white px-3 py-1 rounded-full font-bold">📥 SAVE</a>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Recorded Audio</span>
+                    <a href="${url}" download="voice.wav" class="text-[10px] bg-green-500 text-white px-3 py-1 rounded-full font-bold">📥 DOWNLOAD</a>
                 </div>
                 <audio src="${url}" controls class="w-full h-8"></audio>`;
+            document.getElementById('gallery').innerHTML = ""; // Only keep the latest
             document.getElementById('gallery').prepend(div);
         }
 
@@ -149,8 +156,9 @@
             idx = (idx + 1) % sentences.length;
             document.getElementById('targetText').innerText = sentences[idx];
             document.getElementById('resultArea').classList.add('hidden');
-            document.getElementById('statusLabel').innerText = "Ready to practice";
-            document.getElementById('statusLabel').className = "text-[10px] font-bold text-slate-400 uppercase tracking-widest";
+            document.getElementById('analyzeBtn').classList.add('hidden');
+            document.getElementById('statusLabel').innerText = "Step 1: Record your voice";
+            document.getElementById('analyzeBtn').innerText = "✨ Analyze Accuracy";
         }
 
         function updateStreak() {
