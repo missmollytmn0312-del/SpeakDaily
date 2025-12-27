@@ -16,154 +16,386 @@
       --warn: #f59e0b;
       --border: #1f2937;
     }
-    body { background: var(--bg); color: var(--text); font-family: system-ui; margin:0; padding:20px; }
-    .card { background: var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:20px; }
-    button { padding:10px 16px; margin:6px; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
-    button.primary { background: var(--accent); color:white; }
-    button.warn { background: var(--warn); color:#1f2937; }
-    button.danger { background: var(--danger); color:white; }
-    .sentence { font-size:1.1rem; background:#0b1222; padding:12px; border-radius:8px; }
-    .heard .matched { color: var(--primary); font-weight:bold; }
-    .heard .missed { color: var(--danger); }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .app {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+
+    .title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .streak {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+    }
+
+    .streak .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+
+    .row {
+      display: grid;
+      gap: 12px;
+    }
+
+    @media (min-width: 760px) {
+      .row.two {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .sentence {
+      font-size: 1.05rem;
+      line-height: 1.5;
+      padding: 12px;
+      border-radius: 12px;
+      background: #0b1222;
+      border: 1px solid #0d1a32;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 520px) {
+      .controls {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    button {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #0b1222;
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:hover {
+      border-color: #2d3a50;
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: #2563eb;
+      color: white;
+    }
+
+    button.warn {
+      background: var(--warn);
+      border-color: #d97706;
+      color: #1f2937;
+    }
+
+    button.danger {
+      background: var(--danger);
+      border-color: #dc2626;
+      color: white;
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .score {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .score .value {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .progress {
+      height: 10px;
+      background: #0b1222;
+      border: 1px solid #0d1a32;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress > div {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #22c55e, #3b82f6);
+      transition: width 300ms ease;
+    }
+
+    .heard {
+      padding: 10px;
+      border-radius: 10px;
+      background: #0b1222;
+      border: 1px solid #0d1a32;
+      min-height: 52px;
+    }
+
+    .heard .matched {
+      color: #22c55e;
+      font-weight: 700;
+    }
+
+    .heard .missed {
+      color: #ef4444;
+    }
+
+    .small {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .footer-note {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 12px;
+    }
   </style>
 </head>
 <body>
-  <h1>Daily Voice Conversation</h1>
-  <div class="card">
-    <div><strong>Streak:</strong> <span id="streak">0</span> days</div>
-    <div class="sentence" id="sentence">Loading…</div>
-    <button id="btnSpeak" class="primary">Speak</button>
-    <button id="btnNext" class="warn">Next</button>
-    <button id="btnRecord">Record</button>
-    <button id="btnDownload">Download</button>
+  <div class="app">
+    <header>
+      <div class="title">Daily Voice Conversation</div>
+      <div class="streak">
+        <div class="dot"></div>
+        <div>
+          <div><strong>Streak:</strong> <span id="streakDays">0</span> days</div>
+          <div class="small">Updates daily</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="label">Today’s conversation text</div>
+      <div id="sentence" class="sentence">Loading…</div>
+      <div class="controls" style="margin-top:10px;">
+        <button id="btnSpeak" class="primary">Speak sentence</button>
+        <button id="btnNext" class="warn">Next sentence</button>
+        <button id="btnRecord" class="">Record</button>
+        <button id="btnStop" class="danger" disabled>Stop</button>
+      </div>
+      <div class="small" style="margin-top:8px;">
+        Uses Web Speech API for recognition and SpeechSynthesis for playback. Your browser may ask for mic permission.
+      </div>
+    </div>
+
+    <div class="row two">
+      <div class="card">
+        <div class="label">Your accuracy score</div>
+        <div class="score">
+          <div class="value" id="scoreValue">0%</div>
+          <div class="small" id="scoreNote">Say the sentence and stop recording to see your score.</div>
+        </div>
+        <div class="progress" style="margin-top:8px;">
+          <div id="scoreBar"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">Heard speech tracking</div>
+        <div id="heardText" class="heard"></div>
+        <div class="small" style="margin-top:6px;">
+          Shows matched words in green and missed words in red based on recognition transcript.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">Your voice recording</div>
+      <div class="controls" style="margin-bottom:10px;">
+        <button id="btnPlay" class="">Play last recording</button>
+        <button id="btnDownload" class="">Download last recording</button>
+        <button id="btnClearAudio" class="">Clear saved audio</button>
+        <button id="btnReplayRecognition" class="">Replay heard transcript</button>
+      </div>
+      <audio id="audioPlayer" controls></audio>
+    </div>
+
+    <div class="footer-note">
+      Buttons are visible and clickable. Works on phones and laptops. If recognition or recording is unsupported, you’ll see a notice.
+    </div>
   </div>
-  <div class="card">
-    <div><strong>Accuracy:</strong> <span id="score">0%</span></div>
-    <div id="heardText" class="heard"></div>
-    <audio id="audioPlayer" controls></audio>
-  </div>
 
-<script>
-const sentences = [
-  "Good morning! How are you today?",
-  "I would like a cup of coffee, please.",
-  "Can you help me find the nearest bus stop?",
-  "The weather is warm and breezy.",
-  "Let’s practice English for fifteen minutes.",
-  "What time does the meeting start tomorrow?",
-  "I’m learning Vietnamese and enjoying it."
-];
+  <script>
+    // -------- Daily conversation & streak --------
+    const dailySentences = [
+      "Good morning! How are you feeling today?",
+      "I would like a cup of coffee, please.",
+      "Can you help me find the nearest bus stop?",
+      "The weather in Hanoi is warm and breezy.",
+      "Let’s practice English for fifteen minutes.",
+      "What time does the meeting start tomorrow?",
+      "I’m learning Vietnamese and enjoying it."
+    ];
+        let currentIndex = 0;
+        let isRecording = false;
+        let mediaRecorder;
+        let audioChunks = [];
+        let recognition;
 
-const sentenceEl = document.getElementById("sentence");
-const streakEl = document.getElementById("streak");
-const heardEl = document.getElementById("heardText");
-const scoreEl = document.getElementById("score");
-const audioPlayer = document.getElementById("audioPlayer");
+        // Initialize Speech Recognition
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRec) {
+            recognition = new SpeechRec();
+            recognition.lang = 'en-US';
+            recognition.onresult = (e) => {
+                const speech = e.results[0][0].transcript;
+                processScore(speech);
+            };
+        }
 
-let currentSentence = "";
-let recognition;
-let mediaRecorder;
-let chunks = [];
-let recognizedText = "";
+        async function toggleRecording() {
+            const btn = document.getElementById('micBtn');
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    // Determine format (mp4 for iPhone, webm for others)
+                    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+                    mediaRecorder = new MediaRecorder(stream, { mimeType });
+                    audioChunks = [];
 
-function getDateKey(d = new Date()) {
-  return d.toISOString().slice(0,10);
-}
+                    mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(audioChunks, { type: mimeType });
+                        const url = URL.createObjectURL(blob);
+                        addVoiceToGallery(url, dailySentences[currentIndex]);
+                        stream.getTracks().forEach(t => t.stop());
+                    };
 
-function updateStreak() {
-  const today = getDateKey();
-  const last = localStorage.getItem("lastDate");
-  let streak = parseInt(localStorage.getItem("streak") || "0");
-  if (last !== today) {
-    streak = last ? streak + 1 : 1;
-    localStorage.setItem("lastDate", today);
-    localStorage.setItem("streak", streak);
-  }
-  streakEl.textContent = streak;
-}
+                    mediaRecorder.start();
+                    if (recognition) recognition.start();
+                    
+                    isRecording = true;
+                    btn.innerText = "🛑 Stop";
+                    btn.classList.replace('bg-blue-600', 'bg-red-500');
+                    document.getElementById('statusLabel').innerText = "Recording & Listening...";
+                } catch (err) { alert("Mic access denied!"); }
+            } else {
+                mediaRecorder.stop();
+                if (recognition) recognition.stop();
+                isRecording = false;
+                btn.innerText = "🎤 Record";
+                btn.classList.replace('bg-red-500', 'bg-blue-600');
+            }
+        }
 
-function loadSentence() {
-  const today = new Date(getDateKey());
-  const idx = today.getDate() % sentences.length;
-  currentSentence = sentences[idx];
-  sentenceEl.textContent = currentSentence;
-}
+        function processScore(speech) {
+            const target = dailySentences[currentIndex].toLowerCase().replace(/[^\w\s]/gi, '');
+            const input = speech.toLowerCase().replace(/[^\w\s]/gi, '');
+            const tWords = target.split(' ');
+            const iWords = input.split(' ');
+            const matches = tWords.filter(w => iWords.includes(w)).length;
+            const score = Math.round((matches / tWords.length) * 100);
 
-// --- Speech synthesis ---
-function speak(text) {
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = "en-US";
-  speechSynthesis.speak(utter);
-}
+            document.getElementById('resultArea').classList.remove('hidden');
+            document.getElementById('scoreText').innerText = score + "%";
+            document.getElementById('scoreBar').style.width = score + "%";
+            document.getElementById('userTranscript').innerText = "Heard: " + speech;
+            
+            if (score > 40) updateStreak();
+        }
 
-// --- Recognition setup ---
-function setupRecognition() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return null;
-  const r = new SR();
-  r.lang = "en-US";
-  r.continuous = false;
-  r.interimResults = false;
-  r.onresult = e => {
-    recognizedText = e.results[0][0].transcript;
-    compareAccuracy(currentSentence, recognizedText);
-  };
-  return r;
-}
+        function addVoiceToGallery(url, title) {
+            const gallery = document.getElementById('gallery');
+            if (gallery.innerHTML.includes("Your recordings will appear")) gallery.innerHTML = "";
+            const div = document.createElement('div');
+            div.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2";
+            div.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${title}</p>
+                    <a href="${url}" download="my-voice.wav" class="text-[9px] bg-green-100 text-green-600 px-2 py-1 rounded font-bold">📥 DOWNLOAD</a>
+                </div>
+                <audio src="${url}" controls class="w-full h-10"></audio>`;
+            gallery.prepend(div);
+        }
 
-// --- Accuracy scoring ---
-function compareAccuracy(target, heard) {
-  if (!heard) { scoreEl.textContent = "0%"; return; }
-  const targetWords = target.toLowerCase().split(" ");
-  const heardWords = heard.toLowerCase().split(" ");
-  const matched = targetWords.filter(w => heardWords.includes(w));
-  const percent = Math.round((matched.length / targetWords.length) * 100);
-  scoreEl.textContent = percent + "%";
-  heardEl.innerHTML = targetWords.map(w =>
-    heardWords.includes(w) ? `<span class="matched">${w}</span>` : `<span class="missed">${w}</span>`
-  ).join(" ");
-}
+        function playAI() {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(dailySentences[currentIndex]);
+            msg.lang = 'en-US';
+            window.speechSynthesis.speak(msg);
+        }
 
-// --- Recording ---
-async function startRecording() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    chunks = [];
-    mediaRecorder.ondataavailable = e => chunks.push(e.data);
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, { type: "audio/webm" });
-      const url = URL.createObjectURL(blob);
-      audioPlayer.src = url;
-    };
-    mediaRecorder.start();
-    recognition = setupRecognition();
-    if (recognition) recognition.start();
-  } catch (err) {
-    alert("Mic access failed. Use HTTPS and allow microphone.");
-  }
-}
+        function updateStreak() {
+            const today = new Date().toDateString();
+            const lastDate = localStorage.getItem('lastDate');
+            let s = parseInt(localStorage.getItem('dailyStreak') || 0);
+            if (lastDate !== today) {
+                s++;
+                localStorage.setItem('dailyStreak', s);
+                localStorage.setItem('lastDate', today);
+                document.getElementById('streakCount').innerText = s;
+            }
+        }
 
-// --- Event bindings ---
-document.getElementById("btnSpeak").onclick = () => speak(currentSentence);
-document.getElementById("btnNext").onclick = () => {
-  currentSentence = sentences[(sentences.indexOf(currentSentence)+1)%sentences.length];
-  sentenceEl.textContent = currentSentence;
-  heardEl.innerHTML = "";
-  scoreEl.textContent = "0%";
-};
-document.getElementById("btnRecord").onclick = startRecording;
-document.getElementById("btnDownload").onclick = () => {
-  if (!audioPlayer.src) { alert("No recording yet."); return; }
-  const a = document.createElement("a");
-  a.href = audioPlayer.src;
-  a.download = "recording.webm";
-  a.click();
-};
+        function nextSentence() {
+            currentIndex = (currentIndex + 1) % dailySentences.length;
+            document.getElementById('targetText').innerText = `"${dailySentences[currentIndex]}"`;
+            document.getElementById('resultArea').classList.add('hidden');
+            document.getElementById('statusLabel').innerText = "Ready";
+        }
 
-// --- Initialize immediately ---
-updateStreak();
-loadSentence();
-</script>
+        document.getElementById('streakCount').innerText = localStorage.getItem('dailyStreak') || 0;
+        nextSentence();
+    </script>
 </body>
 </html>
