@@ -405,34 +405,9 @@
 
   return r;
 }
-      const r = new SR();
-      r.lang = "en-US"; // Adjust as needed, e.g., "vi-VN" for Vietnamese
-      r.interimResults = true;
-      r.continuous = true;
-
-      r.onresult = (event) => {
-        let interim = "";
-        let finalText = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const res = event.results[i];
-          if (res.isFinal) finalText += res[0].transcript;
-          else interim += res[0].transcript;
-        }
         recognizedTranscript = (finalText || interim).trim();
         updateHeard(currentSentence, recognizedTranscript);
-      };
-
-      r.onerror = (e) => {
-        console.warn("Recognition error:", e);
-      };
-
-      r.onend = () => {
-        recognizing = false;
-      };
-
-      return r;
     }
-
     recognition = setupRecognition();
 
     // -------- MediaRecorder (save user voice) --------
