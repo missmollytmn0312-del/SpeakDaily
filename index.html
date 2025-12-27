@@ -2,51 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Speaking Pro | Intelligent Scoring</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Speaking Pro | Mobile Download</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 min-h-screen p-4 pb-20 font-sans">
+<body class="bg-slate-50 min-h-screen p-4 pb-20 font-sans select-none">
     <div class="max-w-md mx-auto space-y-4">
         
         <div class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-slate-200">
-            <h1 class="font-bold text-slate-800 text-lg">Speaking Pro</h1>
-            <div class="bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-bold">
-                🔥 <span id="streakCount">0</span> Day Streak
+            <h1 class="font-bold text-slate-800">Speaking Pro</h1>
+            <div class="bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-sm">
+                🔥 Streak: <span id="streakCount">0</span>
             </div>
         </div>
 
         <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200 text-center">
-            <div class="bg-indigo-50 p-6 rounded-2xl mb-6 flex items-center justify-center min-h-[120px]">
-                <p id="targetText" class="text-lg font-semibold text-indigo-900 leading-relaxed italic">"Press Next to start"</p>
+            <div class="bg-indigo-50 p-6 rounded-2xl mb-6 min-h-[120px] flex items-center justify-center">
+                <p id="targetText" class="text-lg font-semibold text-indigo-900 leading-relaxed italic">"Loading..."</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <button onclick="playAI()" class="bg-slate-100 hover:bg-slate-200 py-4 rounded-2xl font-bold text-slate-700 transition">🔊 Listen</button>
-                <button id="micBtn" onclick="toggleRecording()" class="bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-bold shadow-lg transition-all">🎤 Record</button>
+                <button onclick="playAI()" class="bg-slate-100 py-4 rounded-2xl font-bold text-slate-700 active:scale-95 transition">🔊 Listen</button>
+                <button id="micBtn" onclick="toggleRecording()" class="bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">🎤 Record</button>
             </div>
 
-            <button onclick="nextSentence()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold hover:bg-slate-900 mb-6 transition">Next Sentence ➔</button>
+            <button onclick="nextSentence()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold active:bg-slate-900 transition">Next Sentence ➔</button>
 
-            <div id="resultArea" class="hidden mt-4 pt-6 border-t border-slate-100 animate-in fade-in zoom-in duration-300">
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Pronunciation Accuracy</p>
-                <div id="scoreText" class="text-5xl font-black text-blue-600 mb-4 tracking-tighter">0%</div>
-                
-                <div class="w-full bg-slate-200 rounded-full h-3 mb-4 overflow-hidden">
-                    <div id="scoreBar" class="h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+            <div id="resultArea" class="hidden mt-6 pt-4 border-t border-slate-100">
+                <div id="scoreText" class="text-5xl font-black text-blue-600 mb-2">0%</div>
+                <div class="w-full bg-slate-200 rounded-full h-2 mb-4">
+                    <div id="scoreBar" class="h-full bg-blue-600 rounded-full transition-all duration-700" style="width: 0%"></div>
                 </div>
-                
-                <div class="bg-slate-50 p-3 rounded-lg border border-dashed border-slate-200">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">We Heard:</p>
-                    <p id="userTranscript" class="text-sm text-slate-600 italic"></p>
-                </div>
+                <p id="userTranscript" class="text-xs text-slate-500 italic"></p>
             </div>
         </div>
 
         <div class="bg-white p-6 rounded-3xl shadow-md border border-slate-200">
-            <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">📁 My Recordings</h3>
-            <div id="gallery" class="space-y-4 max-h-60 overflow-y-auto italic text-xs text-slate-400 text-center">
-                Practice a sentence to see your history!
+            <h3 class="font-bold text-slate-800 mb-4">📁 Voice History</h3>
+            <div id="gallery" class="space-y-4">
+                <p class="text-slate-400 text-sm italic text-center">Your recordings appear here.</p>
             </div>
         </div>
     </div>
@@ -57,43 +51,31 @@
             "Could you please repeat that? I didn't quite catch what you said.",
             "Consistency is more important than perfection.",
             "The journey of a thousand miles begins with a single step.",
-            "I really appreciate your help with this project.",
-            "To be honest, I think we should try a different approach."
+            "I really appreciate your help with this project."
         ];
 
         let currentIndex = 0;
         let isRecording = false;
         let mediaRecorder;
         let audioChunks = [];
+        let recognition;
 
-        // --- Persistent Streak Logic ---
-        function loadStreak() {
-            const streak = localStorage.getItem('dailyStreak') || 0;
-            const lastDate = localStorage.getItem('lastDate');
-            const today = new Date().toDateString();
+        // Mobile-Optimized Speech Engine
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRec) {
+            recognition = new SpeechRec();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = (e) => {
+                const speech = e.results[0][0].transcript;
+                processFinalResult(speech);
+            };
             
-            if (lastDate && (new Date(today) - new Date(lastDate)) / 86400000 > 1) {
-                localStorage.setItem('dailyStreak', 0);
-                document.getElementById('streakCount').innerText = "0";
-            } else {
-                document.getElementById('streakCount').innerText = streak;
-            }
+            recognition.onerror = (e) => console.log("Speech Engine Error:", e.error);
         }
 
-        function updateStreak() {
-            const today = new Date().toDateString();
-            const lastDate = localStorage.getItem('lastDate');
-            let currentStreak = parseInt(localStorage.getItem('dailyStreak') || 0);
-
-            if (lastDate !== today) {
-                currentStreak++;
-                localStorage.setItem('dailyStreak', currentStreak);
-                localStorage.setItem('lastDate', today);
-                document.getElementById('streakCount').innerText = currentStreak;
-            }
-        }
-
-        // --- Audio & Recognition ---
         function playAI() {
             window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(dailySentences[currentIndex]);
@@ -104,11 +86,12 @@
         async function toggleRecording() {
             const btn = document.getElementById('micBtn');
             if (!isRecording) {
-                audioChunks = [];
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
                     mediaRecorder = new MediaRecorder(stream, { mimeType });
+                    audioChunks = [];
+
                     mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
                     mediaRecorder.onstop = () => {
                         const audioBlob = new Blob(audioChunks, { type: mimeType });
@@ -117,84 +100,69 @@
                         stream.getTracks().forEach(t => t.stop());
                     };
 
-                    startSpeechEngine();
                     mediaRecorder.start();
+                    if (recognition) recognition.start();
+                    
                     isRecording = true;
                     btn.innerText = "🛑 Stop";
                     btn.classList.replace('bg-blue-600', 'bg-red-500');
-                } catch (err) { alert("Microphone access is required."); }
+                } catch (err) {
+                    alert("Please enable microphone access in your settings.");
+                }
             } else {
                 mediaRecorder.stop();
+                // We don't stop recognition immediately on mobile, we let it finish
+                setTimeout(() => { if(recognition) recognition.stop(); }, 500); 
                 isRecording = false;
                 btn.innerText = "🎤 Record";
                 btn.classList.replace('bg-red-500', 'bg-blue-600');
             }
         }
 
-        function startSpeechEngine() {
-            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const rec = new SpeechRec();
-            rec.onresult = (e) => {
-                const speech = e.results[0][0].transcript;
-                calculateIntelligentScore(speech);
-                updateStreak();
-            };
-            rec.start();
-        }
-
-        // --- THE SCORING FUNCTION ---
-        function calculateIntelligentScore(userSpeech) {
+        function processFinalResult(speech) {
             const target = dailySentences[currentIndex].toLowerCase().replace(/[^\w\s]/gi, '');
-            const input = userSpeech.toLowerCase().replace(/[^\w\s]/gi, '');
-            
-            const targetWords = target.split(/\s+/);
-            const inputWords = input.split(/\s+/);
-            
-            let matchCount = 0;
-            targetWords.forEach(word => {
-                if (inputWords.includes(word)) {
-                    matchCount++;
-                }
-            });
+            const input = speech.toLowerCase().replace(/[^\w\s]/gi, '');
+            const tWords = target.split(' ');
+            const iWords = input.split(' ');
+            const matches = tWords.filter(w => iWords.includes(w)).length;
+            const score = Math.round((matches / tWords.length) * 100);
 
-            const score = Math.round((matchCount / targetWords.length) * 100);
-            displayScore(score, userSpeech);
-        }
-
-        function displayScore(score, transcript) {
-            const area = document.getElementById('resultArea');
-            const scoreText = document.getElementById('scoreText');
-            const bar = document.getElementById('scoreBar');
+            document.getElementById('resultArea').classList.remove('hidden');
+            document.getElementById('scoreText').innerText = score + "%";
+            document.getElementById('scoreBar').style.width = score + "%";
+            document.getElementById('userTranscript').innerText = "Heard: " + speech;
             
-            area.classList.remove('hidden');
-            scoreText.innerText = score + "%";
-            bar.style.width = score + "%";
-            
-            // Color Logic
-            if (score >= 80) {
-                bar.className = "h-full transition-all duration-1000 bg-emerald-500";
-                scoreText.className = "text-5xl font-black text-emerald-600 mb-4 tracking-tighter";
-            } else if (score >= 50) {
-                bar.className = "h-full transition-all duration-1000 bg-amber-400";
-                scoreText.className = "text-5xl font-black text-amber-500 mb-4 tracking-tighter";
-            } else {
-                bar.className = "h-full transition-all duration-1000 bg-rose-500";
-                scoreText.className = "text-5xl font-black text-rose-600 mb-4 tracking-tighter";
-            }
-
-            document.getElementById('userTranscript').innerText = `"${transcript}"`;
+            if (score > 40) updateStreak();
         }
 
         function addVoiceToGallery(url, title) {
             const gallery = document.getElementById('gallery');
-            if (gallery.innerText.includes("Practice a sentence")) gallery.innerHTML = "";
+            if (gallery.innerHTML.includes("Your recordings appear")) gallery.innerHTML = "";
+            const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
             const div = document.createElement('div');
-            div.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 text-left";
+            div.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-2";
             div.innerHTML = `
-                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">${title}</p>
+                <div class="flex justify-between items-center">
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${timestamp} - ${title}</p>
+                    <a href="${url}" download="recording.wav" class="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-1 rounded font-bold">📥 DOWNLOAD</a>
+                </div>
                 <audio src="${url}" controls class="w-full h-8"></audio>
             `;
             gallery.prepend(div);
+        }
+
+        function updateStreak() {
+            const today = new Date().toDateString();
+            const lastDate = localStorage.getItem('lastDate');
+            let s = parseInt(localStorage.getItem('dailyStreak') || 0);
+
+            if (lastDate !== today) {
+                s++;
+                localStorage.setItem('dailyStreak', s);
+                localStorage.setItem('lastDate', today);
+                document.getElementById('streakCount').innerText = s;
+            }
         }
 
         function nextSentence() {
@@ -203,8 +171,7 @@
             document.getElementById('resultArea').classList.add('hidden');
         }
 
-        // Run on load
-        loadStreak();
+        document.getElementById('streakCount').innerText = localStorage.getItem('dailyStreak') || 0;
         nextSentence();
     </script>
 </body>
