@@ -16,243 +16,154 @@
       --warn: #f59e0b;
       --border: #1f2937;
     }
-
-    html, body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-
-    .app {
-      max-width: 920px;
-      margin: 0 auto;
-      padding: 16px;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .title {
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-
-    .streak {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .streak .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--primary);
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px;
-      margin-bottom: 16px;
-    }
-
-    .sentence {
-      font-size: 1.05rem;
-      line-height: 1.5;
-      padding: 12px;
-      border-radius: 12px;
-      background: #0b1222;
-      border: 1px solid #0d1a32;
-    }
-
-    .controls {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    button {
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: #0b1222;
-      color: var(--text);
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    button.primary { background: var(--accent); color: white; }
-    button.warn { background: var(--warn); color: #1f2937; }
-    button.danger { background: var(--danger); color: white; }
-    button:disabled { opacity: 0.7; cursor: not-allowed; }
-
-    .score .value {
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: var(--primary);
-    }
-
-    .progress {
-      height: 10px;
-      background: #0b1222;
-      border: 1px solid #0d1a32;
-      border-radius: 999px;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-    .progress > div {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #22c55e, #3b82f6);
-      transition: width 300ms ease;
-    }
-
-    .heard {
-      padding: 10px;
-      border-radius: 10px;
-      background: #0b1222;
-      border: 1px solid #0d1a32;
-      min-height: 52px;
-    }
-    .heard .matched { color: #22c55e; font-weight: 700; }
-    .heard .missed { color: #ef4444; }
-
-    audio { width: 100%; margin-top: 8px; }
-    .small { font-size: 0.85rem; color: var(--muted); }
-    .footer-note { font-size: 0.85rem; color: var(--muted); text-align: center; margin-top: 12px; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui; margin:0; padding:20px; }
+    .card { background: var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:20px; }
+    button { padding:10px 16px; margin:6px; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
+    button.primary { background: var(--accent); color:white; }
+    button.warn { background: var(--warn); color:#1f2937; }
+    button.danger { background: var(--danger); color:white; }
+    .sentence { font-size:1.1rem; background:#0b1222; padding:12px; border-radius:8px; }
+    .heard .matched { color: var(--primary); font-weight:bold; }
+    .heard .missed { color: var(--danger); }
   </style>
 </head>
 <body>
-  <div class="app">
-    <header>
-      <div class="title">Daily Voice Conversation</div>
-      <div class="streak">
-        <div class="dot"></div>
-        <div><strong>Streak:</strong> <span id="streakDays">0</span> days</div>
-      </div>
-    </header>
-
-    <div class="card">
-      <div class="sentence" id="sentence">Loading…</div>
-      <div class="controls">
-        <button id="btnSpeak" class="primary">Speak</button>
-        <button id="btnNext" class="warn">Next</button>
-        <button id="btnRecord">Record</button>
-        <button id="btnDownload">Download</button>
-      </div>
-      <div class="small">Use Safari (iOS) or Chrome (Android) for recognition. HTTPS required.</div>
-    </div>
-
-    <div class="card">
-      <div><strong>Accuracy:</strong> <span id="scoreValue" class="score value">0%</span></div>
-      <div id="scoreNote" class="small">Say the sentence and tap Stop to see your score.</div>
-      <div class="progress"><div id="scoreBar"></div></div>
-    </div>
-
-    <div class="card">
-      <div><strong>Heard speech:</strong></div>
-      <div id="heardText" class="heard"></div>
-    </div>
-
-    <div class="card">
-      <div class="controls">
-        <button id="btnPlay">Play</button>
-        <button id="btnClearAudio">Clear</button>
-        <button id="btnReplayRecognition">Replay Transcript</button>
-      </div>
-      <audio id="audioPlayer" controls></audio>
-    </div>
-
-    <div class="footer-note">Dark theme preserved. Works on phones and laptops.</div>
+  <h1>Daily Voice Conversation</h1>
+  <div class="card">
+    <div><strong>Streak:</strong> <span id="streak">0</span> days</div>
+    <div class="sentence" id="sentence">Loading…</div>
+    <button id="btnSpeak" class="primary">Speak</button>
+    <button id="btnNext" class="warn">Next</button>
+    <button id="btnRecord">Record</button>
+    <button id="btnDownload">Download</button>
+  </div>
+  <div class="card">
+    <div><strong>Accuracy:</strong> <span id="score">0%</span></div>
+    <div id="heardText" class="heard"></div>
+    <audio id="audioPlayer" controls></audio>
   </div>
 
-  <script>
-    const sentences = [
-      "Good morning! How are you today?",
-      "I would like a cup of coffee, please.",
-      "Can you help me find the nearest bus stop?",
-      "The weather is warm and breezy.",
-      "Let’s practice English for fifteen minutes.",
-      "What time does the meeting start tomorrow?",
-      "I’m learning Vietnamese and enjoying it."
-    ];
+<script>
+const sentences = [
+  "Good morning! How are you today?",
+  "I would like a cup of coffee, please.",
+  "Can you help me find the nearest bus stop?",
+  "The weather is warm and breezy.",
+  "Let’s practice English for fifteen minutes.",
+  "What time does the meeting start tomorrow?",
+  "I’m learning Vietnamese and enjoying it."
+];
 
-    const sentenceEl = document.getElementById("sentence");
-    const streakEl = document.getElementById("streakDays");
-    const heardEl = document.getElementById("heardText");
-    const scoreEl = document.getElementById("scoreValue");
-    const scoreNote = document.getElementById("scoreNote");
-    const scoreBar = document.getElementById("scoreBar");
-    const audioPlayer = document.getElementById("audioPlayer");
+const sentenceEl = document.getElementById("sentence");
+const streakEl = document.getElementById("streak");
+const heardEl = document.getElementById("heardText");
+const scoreEl = document.getElementById("score");
+const audioPlayer = document.getElementById("audioPlayer");
 
-    let currentSentence = "";
-    let recognition;
-    let mediaRecorder;
-    let chunks = [];
-    let recognizedText = "";
-    let recordingActive = false;
+let currentSentence = "";
+let recognition;
+let mediaRecorder;
+let chunks = [];
+let recognizedText = "";
 
-    function getDateKey(d = new Date()) {
-      return d.toISOString().slice(0,10);
-    }
+function getDateKey(d = new Date()) {
+  return d.toISOString().slice(0,10);
+}
 
-    function updateStreak() {
-      const today = getDateKey();
-      const last = localStorage.getItem("lastDate");
-      let streak = parseInt(localStorage.getItem("streak") || "0");
-      if (last !== today) {
-        streak = last ? streak + 1 : 1;
-        localStorage.setItem("lastDate", today);
-        localStorage.setItem("streak", streak);
-      }
-      streakEl.textContent = streak;
-    }
+function updateStreak() {
+  const today = getDateKey();
+  const last = localStorage.getItem("lastDate");
+  let streak = parseInt(localStorage.getItem("streak") || "0");
+  if (last !== today) {
+    streak = last ? streak + 1 : 1;
+    localStorage.setItem("lastDate", today);
+    localStorage.setItem("streak", streak);
+  }
+  streakEl.textContent = streak;
+}
 
-    function loadSentence() {
-      const idx = new Date().getDate() % sentences.length;
-      currentSentence = sentences[idx];
-      sentenceEl.textContent = currentSentence;
-    }
+function loadSentence() {
+  const today = new Date(getDateKey());
+  const idx = today.getDate() % sentences.length;
+  currentSentence = sentences[idx];
+  sentenceEl.textContent = currentSentence;
+}
 
-    function speak(text) {
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = "en-US";
-      speechSynthesis.speak(utter);
-    }
+// --- Speech synthesis ---
+function speak(text) {
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "en-US";
+  speechSynthesis.speak(utter);
+}
 
-    function setupRecognition() {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) return null;
-      const r = new SR();
-      r.lang = "en-US";
-      r.continuous = false;
-      r.interimResults = false;
-      r.onresult = e => {
-        recognizedText = e.results[0][0].transcript;
-        compareAccuracy(currentSentence, recognizedText);
-      };
-      return r;
-    }
+// --- Recognition setup ---
+function setupRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  const r = new SR();
+  r.lang = "en-US";
+  r.continuous = false;
+  r.interimResults = false;
+  r.onresult = e => {
+    recognizedText = e.results[0][0].transcript;
+    compareAccuracy(currentSentence, recognizedText);
+  };
+  return r;
+}
 
-    function compareAccuracy(target, heard) {
-      if (!heard) {
-        scoreEl.textContent = "0%";
-        scoreBar.style.width = "0%";
-        scoreNote.textContent = "No speech recognized.";
-        return;
-      }
-      const targetWords = target.toLowerCase().split(" ");
-      const heardWords = heard.toLower
+// --- Accuracy scoring ---
+function compareAccuracy(target, heard) {
+  if (!heard) { scoreEl.textContent = "0%"; return; }
+  const targetWords = target.toLowerCase().split(" ");
+  const heardWords = heard.toLowerCase().split(" ");
+  const matched = targetWords.filter(w => heardWords.includes(w));
+  const percent = Math.round((matched.length / targetWords.length) * 100);
+  scoreEl.textContent = percent + "%";
+  heardEl.innerHTML = targetWords.map(w =>
+    heardWords.includes(w) ? `<span class="matched">${w}</span>` : `<span class="missed">${w}</span>`
+  ).join(" ");
+}
+
+// --- Recording ---
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    chunks = [];
+    mediaRecorder.ondataavailable = e => chunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunks, { type: "audio/webm" });
+      const url = URL.createObjectURL(blob);
+      audioPlayer.src = url;
+    };
+    mediaRecorder.start();
+    recognition = setupRecognition();
+    if (recognition) recognition.start();
+  } catch (err) {
+    alert("Mic access failed. Use HTTPS and allow microphone.");
+  }
+}
+
+// --- Event bindings ---
+document.getElementById("btnSpeak").onclick = () => speak(currentSentence);
+document.getElementById("btnNext").onclick = () => {
+  currentSentence = sentences[(sentences.indexOf(currentSentence)+1)%sentences.length];
+  sentenceEl.textContent = currentSentence;
+  heardEl.innerHTML = "";
+  scoreEl.textContent = "0%";
+};
+document.getElementById("btnRecord").onclick = startRecording;
+document.getElementById("btnDownload").onclick = () => {
+  if (!audioPlayer.src) { alert("No recording yet."); return; }
+  const a = document.createElement("a");
+  a.href = audioPlayer.src;
+  a.download = "recording.webm";
+  a.click();
+};
+
+// --- Initialize immediately ---
+updateStreak();
+loadSentence();
+</script>
+</body>
+</html>
