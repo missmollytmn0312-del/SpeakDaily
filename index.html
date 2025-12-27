@@ -20,7 +20,7 @@
     html, body {
       background: var(--bg);
       color: var(--text);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
       margin: 0;
       padding: 0;
     }
@@ -32,17 +32,15 @@
     }
 
     header {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: start;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 12px;
     }
 
     .title {
       font-size: 1.25rem;
       font-weight: 700;
-      line-height: 1.2;
     }
 
     .streak {
@@ -53,7 +51,6 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      white-space: nowrap;
     }
 
     .streak .dot {
@@ -71,23 +68,6 @@
       margin-bottom: 16px;
     }
 
-    .row {
-      display: grid;
-      gap: 12px;
-    }
-
-    @media (min-width: 760px) {
-      .row.two {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    .label {
-      font-size: 0.85rem;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
     .sentence {
       font-size: 1.05rem;
       line-height: 1.5;
@@ -99,18 +79,12 @@
 
     .controls {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: 10px;
-    }
-
-    @media (min-width: 520px) {
-      .controls {
-        grid-template-columns: repeat(4, 1fr);
-      }
+      margin-top: 10px;
     }
 
     button {
-      width: 100%;
       padding: 12px 14px;
       border-radius: 12px;
       border: 1px solid var(--border);
@@ -118,42 +92,12 @@
       color: var(--text);
       font-weight: 600;
       cursor: pointer;
-      touch-action: manipulation;
     }
 
-    button:hover {
-      border-color: #2d3a50;
-    }
-
-    button.primary {
-      background: var(--accent);
-      border-color: #2563eb;
-      color: white;
-    }
-
-    button.warn {
-      background: var(--warn);
-      border-color: #d97706;
-      color: #1f2937;
-    }
-
-    button.danger {
-      background: var(--danger);
-      border-color: #dc2626;
-      color: white;
-    }
-
-    button:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
-
-    .score {
-      display: flex;
-      gap: 8px;
-      align-items: baseline;
-      flex-wrap: wrap;
-    }
+    button.primary { background: var(--accent); color: white; }
+    button.warn { background: var(--warn); color: #1f2937; }
+    button.danger { background: var(--danger); color: white; }
+    button:disabled { opacity: 0.7; cursor: not-allowed; }
 
     .score .value {
       font-size: 1.4rem;
@@ -167,8 +111,8 @@
       border: 1px solid #0d1a32;
       border-radius: 999px;
       overflow: hidden;
+      margin-top: 8px;
     }
-
     .progress > div {
       height: 100%;
       width: 0%;
@@ -183,32 +127,12 @@
       border: 1px solid #0d1a32;
       min-height: 52px;
     }
+    .heard .matched { color: #22c55e; font-weight: 700; }
+    .heard .missed { color: #ef4444; }
 
-    .heard .matched {
-      color: #22c55e;
-      font-weight: 700;
-    }
-
-    .heard .missed {
-      color: #ef4444;
-    }
-
-    .small {
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-
-    audio {
-      width: 100%;
-      margin-top: 8px;
-    }
-
-    .footer-note {
-      font-size: 0.85rem;
-      color: var(--muted);
-      text-align: center;
-      margin-top: 12px;
-    }
+    audio { width: 100%; margin-top: 8px; }
+    .small { font-size: 0.85rem; color: var(--muted); }
+    .footer-note { font-size: 0.85rem; color: var(--muted); text-align: center; margin-top: 12px; }
   </style>
 </head>
 <body>
@@ -217,406 +141,118 @@
       <div class="title">Daily Voice Conversation</div>
       <div class="streak">
         <div class="dot"></div>
-        <div>
-          <div><strong>Streak:</strong> <span id="streakDays">0</span> days</div>
-          <div class="small">Updates daily</div>
-        </div>
+        <div><strong>Streak:</strong> <span id="streakDays">0</span> days</div>
       </div>
     </header>
 
     <div class="card">
-      <div class="label">Today’s conversation text</div>
-      <div id="sentence" class="sentence">Loading…</div>
-      <div class="controls" style="margin-top:10px;">
-        <button id="btnSpeak" class="primary">Speak sentence</button>
-        <button id="btnNext" class="warn">Next sentence</button>
-        <button id="btnRecord" class="">Record</button>
-        <button id="btnStop" class="danger" disabled>Stop</button>
+      <div class="sentence" id="sentence">Loading…</div>
+      <div class="controls">
+        <button id="btnSpeak" class="primary">Speak</button>
+        <button id="btnNext" class="warn">Next</button>
+        <button id="btnRecord">Record</button>
+        <button id="btnDownload">Download</button>
       </div>
-      <div class="small" style="margin-top:8px;">
-        Uses Web Speech API for recognition and SpeechSynthesis for playback. Your browser may ask for mic permission.
-      </div>
-    </div>
-
-    <div class="row two">
-      <div class="card">
-        <div class="label">Your accuracy score</div>
-        <div class="score">
-          <div class="value" id="scoreValue">0%</div>
-          <div class="small" id="scoreNote">Say the sentence and stop recording to see your score.</div>
-        </div>
-        <div class="progress" style="margin-top:8px;">
-          <div id="scoreBar"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="label">Heard speech tracking</div>
-        <div id="heardText" class="heard"></div>
-        <div class="small" style="margin-top:6px;">
-          Shows matched words in green and missed words in red based on recognition transcript.
-        </div>
-      </div>
+      <div class="small">Use Safari (iOS) or Chrome (Android) for recognition. HTTPS required.</div>
     </div>
 
     <div class="card">
-      <div class="label">Your voice recording</div>
-      <div class="controls" style="margin-bottom:10px;">
-        <button id="btnPlay" class="">Play last recording</button>
-        <button id="btnDownload" class="">Download last recording</button>
-        <button id="btnClearAudio" class="">Clear saved audio</button>
-        <button id="btnReplayRecognition" class="">Replay heard transcript</button>
+      <div><strong>Accuracy:</strong> <span id="scoreValue" class="score value">0%</span></div>
+      <div id="scoreNote" class="small">Say the sentence and tap Stop to see your score.</div>
+      <div class="progress"><div id="scoreBar"></div></div>
+    </div>
+
+    <div class="card">
+      <div><strong>Heard speech:</strong></div>
+      <div id="heardText" class="heard"></div>
+    </div>
+
+    <div class="card">
+      <div class="controls">
+        <button id="btnPlay">Play</button>
+        <button id="btnClearAudio">Clear</button>
+        <button id="btnReplayRecognition">Replay Transcript</button>
       </div>
       <audio id="audioPlayer" controls></audio>
     </div>
 
-    <div class="footer-note">
-      Buttons are visible and clickable. Works on phones and laptops. If recognition or recording is unsupported, you’ll see a notice.
-    </div>
+    <div class="footer-note">Dark theme preserved. Works on phones and laptops.</div>
   </div>
 
   <script>
-    // -------- Daily conversation & streak --------
-    const dailySentences = [
-      "Good morning! How are you feeling today?",
+    const sentences = [
+      "Good morning! How are you today?",
       "I would like a cup of coffee, please.",
       "Can you help me find the nearest bus stop?",
-      "The weather in Hanoi is warm and breezy.",
+      "The weather is warm and breezy.",
       "Let’s practice English for fifteen minutes.",
       "What time does the meeting start tomorrow?",
       "I’m learning Vietnamese and enjoying it."
     ];
 
-    function getDateKey(d = new Date()) {
-      return d.toISOString().slice(0,10);
-    }
-
-    function loadStreak() {
-      const lastDate = localStorage.getItem("lastVisitDate");
-      const streak = parseInt(localStorage.getItem("streakDays") || "0", 10);
-      const todayKey = getDateKey();
-
-      if (!lastDate) {
-        localStorage.setItem("lastVisitDate", todayKey);
-        localStorage.setItem("streakDays", "1");
-        return 1;
-      }
-
-      const last = new Date(lastDate);
-      const today = new Date(todayKey);
-      const diffDays = Math.floor((today - last) / (1000*60*60*24));
-
-      let newStreak = streak;
-      if (diffDays === 1) newStreak = streak + 1;
-      else if (diffDays > 1) newStreak = 1;
-
-      localStorage.setItem("lastVisitDate", todayKey);
-      localStorage.setItem("streakDays", String(newStreak));
-      return newStreak;
-    }
-
-    function pickDailySentence() {
-      // Rotate sentence by day index
-      const start = new Date("2025-01-01T00:00:00Z");
-      const today = new Date(getDateKey());
-      const idx = Math.abs(Math.floor((today - start) / (1000*60*60*24))) % dailySentences.length;
-      return dailySentences[idx];
-    }
-
-    // -------- Elements --------
-    const elSentence = document.getElementById("sentence");
-    const elStreak = document.getElementById("streakDays");
-    const btnRecord = document.getElementById("btnRecord");
-    const btnStop = document.getElementById("btnStop");
-    const btnNext = document.getElementById("btnNext");
-    const btnSpeak = document.getElementById("btnSpeak");
-    const btnPlay = document.getElementById("btnPlay");
-    const btnDownload = document.getElementById("btnDownload");
-    const btnClearAudio = document.getElementById("btnClearAudio");
-    const btnReplayRecognition = document.getElementById("btnReplayRecognition");
-    const heardText = document.getElementById("heardText");
-    const scoreValue = document.getElementById("scoreValue");
+    const sentenceEl = document.getElementById("sentence");
+    const streakEl = document.getElementById("streakDays");
+    const heardEl = document.getElementById("heardText");
+    const scoreEl = document.getElementById("scoreValue");
     const scoreNote = document.getElementById("scoreNote");
     const scoreBar = document.getElementById("scoreBar");
     const audioPlayer = document.getElementById("audioPlayer");
 
-    // -------- App state --------
     let currentSentence = "";
-    let sentenceIndex = 0; // for "Next sentence"
-    let mediaRecorder = null;
+    let recognition;
+    let mediaRecorder;
     let chunks = [];
-    let lastBlob = null;
-    let recognition = null;
-    let recognizing = false;
-    let recognizedTranscript = "";
+    let recognizedText = "";
+    let recordingActive = false;
 
-    // -------- Init UI --------
-    function initDaily() {
-      const streak = loadStreak();
-      elStreak.textContent = streak;
-      currentSentence = pickDailySentence();
-      elSentence.textContent = currentSentence;
-      sentenceIndex = dailySentences.indexOf(currentSentence);
+    function getDateKey(d = new Date()) {
+      return d.toISOString().slice(0,10);
     }
 
-    initDaily();
-
-    // -------- Speech synthesis (replay target) --------
-    function speak(text) {
-      if (!("speechSynthesis" in window)) {
-        alert("SpeechSynthesis not supported on this browser.");
-        return;
+    function updateStreak() {
+      const today = getDateKey();
+      const last = localStorage.getItem("lastDate");
+      let streak = parseInt(localStorage.getItem("streak") || "0");
+      if (last !== today) {
+        streak = last ? streak + 1 : 1;
+        localStorage.setItem("lastDate", today);
+        localStorage.setItem("streak", streak);
       }
-      window.speechSynthesis.cancel();
+      streakEl.textContent = streak;
+    }
+
+    function loadSentence() {
+      const idx = new Date().getDate() % sentences.length;
+      currentSentence = sentences[idx];
+      sentenceEl.textContent = currentSentence;
+    }
+
+    function speak(text) {
       const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = 1.0;
-      utter.pitch = 1.0;
-      // Prefer English voice if available
-      const voices = speechSynthesis.getVoices();
-      const enVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("en"));
-      if (enVoice) utter.voice = enVoice;
+      utter.lang = "en-US";
       speechSynthesis.speak(utter);
     }
 
-    btnSpeak.addEventListener("click", () => speak(currentSentence));
-
-    // -------- Web Speech API recognition --------
     function setupRecognition() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    alert("Speech recognition not supported. Use Safari (iOS) or Chrome (Android).");
-    return null;
-  }
-  const r = new SR();
-  r.lang = "en-US"; // or "vi-VN"
-  r.continuous = false; // better for mobile
-  r.interimResults = false;
-
-  r.onresult = e => {
-    const transcript = e.results[0][0].transcript;
-    recognizedText = transcript;
-    compareAccuracy(currentSentence, recognizedText);
-  };
-
-  r.onerror = e => {
-    console.error("Recognition error:", e.error);
-    alert("Recognition failed: " + e.error);
-  };
-
-  return r;
-}
-        recognizedTranscript = (finalText || interim).trim();
-        updateHeard(currentSentence, recognizedTranscript);
-    }
-    recognition = setupRecognition();
-
-    // -------- MediaRecorder (save user voice) --------
-    async function startRecording() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        chunks = [];
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) chunks.push(e.data);
-        };
-        mediaRecorder.onstop = () => {
-          lastBlob = new Blob(chunks, { type: "audio/webm" });
-          const url = URL.createObjectURL(lastBlob);
-          audioPlayer.src = url;
-          localStorage.setItem("lastRecording", url); // store object URL handle (note: page refresh loses actual blob, we also store binary below)
-          storeBlob(lastBlob); // persist actual binary
-          // finalize score after user stops
-          computeAndShowScore(currentSentence, recognizedTranscript);
-        };
-        mediaRecorder.start();
-
-        // Start recognition simultaneously
-        if (!recognition) recognition = setupRecognition();
-        if (recognicationAvailable()) {
-          recognizedTranscript = "";
-          recognition.start();
-          recognizing = true;
-        }
-
-        // UI updates
-        btnRecord.textContent = "Recording…";
-        btnRecord.classList.add("danger");
-        btnRecord.disabled = true;
-        btnStop.disabled = false;
-      } catch (e) {
-        alert("Microphone access failed. Please allow mic permissions.");
-        console.error(e);
-      }
-    }
-
-    function recognicationAvailable() {
-      return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-    }
-
-    function stopRecording() {
-      // Stop recorder
-      if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-      }
-      // Stop recognition
-      if (recognition && recognizing) {
-        try { recognition.stop(); } catch {}
-        recognizing = false;
-      }
-      // UI updates
-      btnRecord.textContent = "Record";
-      btnRecord.classList.remove("danger");
-      btnRecord.disabled = false;
-      btnStop.disabled = true;
-    }
-
-    btnRecord.addEventListener("click", startRecording);
-    btnStop.addEventListener("click", stopRecording);
-
-    // -------- Next sentence --------
-    btnNext.addEventListener("click", () => {
-      sentenceIndex = (sentenceIndex + 1) % dailySentences.length;
-      currentSentence = dailySentences[sentenceIndex];
-      elSentence.textContent = currentSentence;
-      recognizedTranscript = "";
-      heardText.innerHTML = "";
-      scoreValue.textContent = "0%";
-      scoreBar.style.width = "0%";
-      scoreNote.textContent = "Say the sentence and stop recording to see your score.";
-      // speak next sentence immediately for continuity
-      speak(currentSentence);
-    });
-
-    // -------- Heard tracking and scoring --------
-    function normalizeText(s) {
-      return s
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}\s']/gu, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-    }
-
-    function tokenize(s) {
-      const n = normalizeText(s);
-      return n ? n.split(" ") : [];
-    }
-
-    function updateHeard(target, heard) {
-      const tWords = tokenize(target);
-      const hWords = tokenize(heard);
-
-      // Simple word presence check
-      const heardSet = new Set(hWords);
-      const fragments = tWords.map(w => {
-        if (heardSet.has(w)) {
-          return `<span class="matched">${escapeHtml(w)}</span>`;
-        } else {
-          return `<span class="missed">${escapeHtml(w)}</span>`;
-        }
-      });
-
-      // Show live transcript below for clarity
-      const liveTranscript = heard ? `<div class="small" style="margin-top:8px;"><strong>Heard:</strong> ${escapeHtml(heard)}</div>` : "";
-      heardText.innerHTML = fragments.join(" ") + liveTranscript;
-    }
-
-    function escapeHtml(s) {
-      return s.replace(/[&<>"']/g, (c) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-      }[c]));
-    }
-
-    function jaccardWordAccuracy(target, heard) {
-      const A = new Set(tokenize(target));
-      const B = new Set(tokenize(heard));
-      const intersection = new Set([...A].filter(x => B.has(x)));
-      const union = new Set([...A, ...B]);
-      const score = union.size === 0 ? 0 : (intersection.size / union.size);
-      return score;
-    }
-
-    function computeAndShowScore(target, heard) {
-      const acc = jaccardWordAccuracy(target, heard);
-      const percent = Math.round(acc * 100);
-      scoreValue.textContent = percent + "%";
-      scoreBar.style.width = percent + "%";
-      scoreNote.textContent = heard
-        ? "Based on recognized words vs target."
-        : "No speech recognized. Try again.";
-    }
-
-    // -------- Save, playback, download --------
-    function storeBlob(blob) {
-      // Persist as base64 in localStorage (size-limited; short recordings recommended)
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result; // data:audio/webm;base64,....
-        try {
-          localStorage.setItem("lastRecordingBase64", base64);
-        } catch (e) {
-          console.warn("Failed to store recording (storage limit).");
-        }
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return null;
+      const r = new SR();
+      r.lang = "en-US";
+      r.continuous = false;
+      r.interimResults = false;
+      r.onresult = e => {
+        recognizedText = e.results[0][0].transcript;
+        compareAccuracy(currentSentence, recognizedText);
       };
-      reader.readAsDataURL(blob);
+      return r;
     }
 
-    function loadStoredBlob() {
-      const b64 = localStorage.getItem("lastRecordingBase64");
-      if (!b64) return null;
-      audioPlayer.src = b64;
-      return b64;
-    }
-
-    btnPlay.addEventListener("click", () => {
-      const source = audioPlayer.src || loadStoredBlob();
-      if (!source) {
-        alert("No recording available yet.");
+    function compareAccuracy(target, heard) {
+      if (!heard) {
+        scoreEl.textContent = "0%";
+        scoreBar.style.width = "0%";
+        scoreNote.textContent = "No speech recognized.";
         return;
       }
-      audioPlayer.play();
-    });
-
-    btnDownload.addEventListener("click", () => {
-      const b64 = localStorage.getItem("lastRecordingBase64");
-      if (!b64) {
-        alert("No recording available to download.");
-        return;
-      }
-      const a = document.createElement("a");
-      a.href = b64;
-      a.download = `voice-${getDateKey()}.webm`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    });
-
-    btnClearAudio.addEventListener("click", () => {
-      localStorage.removeItem("lastRecordingBase64");
-      localStorage.removeItem("lastRecording");
-      audioPlayer.src = "";
-      alert("Cleared saved audio.");
-    });
-
-    btnReplayRecognition.addEventListener("click", () => {
-      if (!recognizedTranscript) {
-        alert("No recognized transcript to replay.");
-        return;
-      }
-      speak(recognizedTranscript);
-    });
-
-    // -------- Accessibility & mobile tweaks --------
-    // Ensure buttons are visible and clickable
-    [btnRecord, btnStop, btnNext, btnSpeak, btnPlay, btnDownload, btnClearAudio, btnReplayRecognition]
-      .forEach(btn => btn.setAttribute("aria-pressed", "false"));
-
-    // Load any previous audio on start
-    loadStoredBlob();
-
-    // If voices not loaded yet, ensure speak uses available voices
-    if ("speechSynthesis" in window) {
-      speechSynthesis.onvoiceschanged = () => {};
-    }
-  </script>
-</body>
-</html>
+      const targetWords = target.toLowerCase().split(" ");
+      const heardWords = heard.toLower
