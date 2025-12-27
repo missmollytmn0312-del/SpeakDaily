@@ -382,11 +382,29 @@
 
     // -------- Web Speech API recognition --------
     function setupRecognition() {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) {
-        alert("Speech recognition is not supported on this browser.");
-        return null;
-      }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    alert("Speech recognition not supported. Use Safari (iOS) or Chrome (Android).");
+    return null;
+  }
+  const r = new SR();
+  r.lang = "en-US"; // or "vi-VN"
+  r.continuous = false; // better for mobile
+  r.interimResults = false;
+
+  r.onresult = e => {
+    const transcript = e.results[0][0].transcript;
+    recognizedText = transcript;
+    compareAccuracy(currentSentence, recognizedText);
+  };
+
+  r.onerror = e => {
+    console.error("Recognition error:", e.error);
+    alert("Recognition failed: " + e.error);
+  };
+
+  return r;
+}
       const r = new SR();
       r.lang = "en-US"; // Adjust as needed, e.g., "vi-VN" for Vietnamese
       r.interimResults = true;
